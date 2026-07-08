@@ -1,0 +1,25 @@
+{
+  "inboxes": [
+    {
+      "id": "aa8b3376-6a50-4ef7-91fc-adb206d63484",
+      "handle": "demo",
+      "penName": "Demo",
+      "bio": "把没说出口的话放在这里。",
+      "ownerKey": "OVO1-2026-DEMO",
+      "createdAt": "2026-07-08T04:56:20.822Z",
+      "avatarUrl": ""
+    }
+  ],
+  "letters": [
+    {
+      "id": "4d81ad29-edce-4df5-8579-e47ee812feda",
+      "inboxId": "aa8b3376-6a50-4ef7-91fc-adb206d63484",
+      "body": "这是一封测试来信",
+      "status": "replied",
+      "reply": "测试回信已公开",
+      "createdAt": "2026-07-08T04:56:32.499Z",
+      "repliedAt": "2026-07-08T04:56:48.878Z",
+      "archivedAt": null
+    }
+  ]
+}
