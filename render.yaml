@@ -1,8 +1,16 @@
 services:
   - type: web
     name: ovo-letters
-    env: node
-    plan: free
-    buildCommand: ""
+    runtime: node
+    plan: starter
+    buildCommand: "npm install"
     startCommand: "npm start"
-    autoDeploy: true
+    autoDeployTrigger: commit
+    healthCheckPath: /api/health
+    envVars:
+      - key: DB_PATH
+        value: /var/data/db.json
+    disk:
+      name: ovo-data
+      mountPath: /var/data
+      sizeGB: 1

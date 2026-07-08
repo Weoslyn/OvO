@@ -1,13 +1,15 @@
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
-import { extname, join, normalize } from "node:path";
+import { dirname, extname, isAbsolute, join, normalize } from "node:path";
 import { randomUUID, randomBytes } from "node:crypto";
 
 const root = process.cwd();
 const publicDir = join(root, "public");
-const dataDir = join(root, "data");
-const dbPath = join(dataDir, "db.json");
+const dbPath = process.env.DB_PATH
+  ? (isAbsolute(process.env.DB_PATH) ? process.env.DB_PATH : join(root, process.env.DB_PATH))
+  : join(root, "data", "db.json");
+const dataDir = dirname(dbPath);
 const port = Number(process.env.PORT || 5173);
 const host = process.env.HOST || "127.0.0.1";
 
@@ -145,6 +147,10 @@ function requireOwner(req, inbox) {
 async function handleApi(req, res, url) {
   const db = await loadDb();
   const path = url.pathname;
+
+  if (req.method === "GET" && path === "/api/health") {
+    return sendJson(res, 200, { ok: true });
+  }
 
   if (req.method === "POST" && path === "/api/inboxes") {
     const body = await readJson(req);

@@ -46,6 +46,19 @@ npm run dev
 
 GitHub Pages 只能放静态 HTML/CSS/JS，不能运行这个 Node API，也不能可靠保存投稿数据。后续如果一定要 GitHub Pages，需要把 API 改接第三方后端，例如 Supabase、Firebase 或 serverless functions。
 
+### Render 部署
+
+仓库根目录已经包含 `render.yaml`，可以用 Render Blueprint 部署。
+
+- 服务类型：Web Service
+- Runtime：Node
+- Start Command：`npm start`
+- Health Check：`/api/health`
+- 数据文件：`DB_PATH=/var/data/db.json`
+- 持久磁盘：`/var/data`
+
+Render 的普通文件系统是临时的；没有持久磁盘时，服务重启或重新部署会丢失运行时写入的数据。Render 官方文档说明持久磁盘只能挂到付费 Web Service、Private Service 或 Background Worker 上，所以如果要长期保存来信，部署时需要选择支持磁盘的付费实例。
+
 ## 后续可扩展
 
 - 用户登录、邮箱找回、提醒邮件。
