@@ -12,6 +12,9 @@ const dbPath = process.env.DB_PATH
 const dataDir = dirname(dbPath);
 const port = Number(process.env.PORT || 5173);
 const host = process.env.HOST || "127.0.0.1";
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const useSupabase = Boolean(supabaseUrl && supabaseServiceRoleKey);
 
 const mime = {
   ".html": "text/html; charset=utf-8",
@@ -51,6 +54,129 @@ async function loadDb() {
 
 async function saveDb(db) {
   await writeFile(dbPath, `${JSON.stringify(db, null, 2)}\n`);
+}
+
+function toAppInbox(row) {
+  return {
+    id: row.id,
+    handle: row.handle,
+    penName: row.pen_name,
+    ownerEmail: row.owner_email,
+    avatarUrl: row.avatar_url || "",
+    bio: row.bio || "",
+    ownerKey: row.owner_key,
+    createdAt: row.created_at
+  };
+}
+
+function toAppLetter(row) {
+  return {
+    id: row.id,
+    inboxId: row.inbox_id,
+    body: row.body,
+    status: row.status,
+    reply: row.reply || "",
+    createdAt: row.created_at,
+    repliedAt: row.replied_at,
+    archivedAt: row.archived_at
+  };
+}
+
+function toDbInbox(inbox) {
+  return {
+    id: inbox.id,
+    handle: inbox.handle,
+    pen_name: inbox.penName,
+    owner_email: inbox.ownerEmail,
+    avatar_url: inbox.avatarUrl || "",
+    bio: inbox.bio || "",
+    owner_key: inbox.ownerKey,
+    created_at: inbox.createdAt
+  };
+}
+
+function toDbLetter(letter) {
+  return {
+    id: letter.id,
+    inbox_id: letter.inboxId,
+    body: letter.body,
+    status: letter.status,
+    reply: letter.reply || "",
+    created_at: letter.createdAt,
+    replied_at: letter.repliedAt,
+    archived_at: letter.archivedAt
+  };
+}
+
+async function supabaseRequest(path, options = {}) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+    method: options.method || "GET",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      authorization: `Bearer ${supabaseServiceRoleKey}`,
+      "content-type": "application/json",
+      prefer: options.prefer || "return=representation",
+      ...(options.headers || {})
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    const error = new Error(data?.message || data?.hint || "Supabase 请求失败");
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+
+async function loadStore() {
+  if (!useSupabase) return loadDb();
+  const [inboxes, letters] = await Promise.all([
+    supabaseRequest("inboxes?select=*"),
+    supabaseRequest("letters?select=*")
+  ]);
+  return {
+    inboxes: inboxes.map(toAppInbox),
+    letters: letters.map(toAppLetter)
+  };
+}
+
+async function insertInbox(inbox) {
+  if (!useSupabase) return null;
+  const [row] = await supabaseRequest("inboxes", { method: "POST", body: toDbInbox(inbox) });
+  return toAppInbox(row);
+}
+
+async function updateInbox(id, patch) {
+  if (!useSupabase) return null;
+  const body = {};
+  if (Object.hasOwn(patch, "avatarUrl")) body.avatar_url = patch.avatarUrl || "";
+  const [row] = await supabaseRequest(`inboxes?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body
+  });
+  return toAppInbox(row);
+}
+
+async function insertLetter(letter) {
+  if (!useSupabase) return null;
+  const [row] = await supabaseRequest("letters", { method: "POST", body: toDbLetter(letter) });
+  return toAppLetter(row);
+}
+
+async function updateLetter(id, patch) {
+  if (!useSupabase) return null;
+  const body = {};
+  if (Object.hasOwn(patch, "reply")) body.reply = patch.reply || "";
+  if (Object.hasOwn(patch, "status")) body.status = patch.status;
+  if (Object.hasOwn(patch, "repliedAt")) body.replied_at = patch.repliedAt;
+  if (Object.hasOwn(patch, "archivedAt")) body.archived_at = patch.archivedAt;
+  const [row] = await supabaseRequest(`letters?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body
+  });
+  return toAppLetter(row);
 }
 
 function token() {
@@ -145,11 +271,11 @@ function requireOwner(req, inbox) {
 }
 
 async function handleApi(req, res, url) {
-  const db = await loadDb();
+  const db = await loadStore();
   const path = url.pathname;
 
   if (req.method === "GET" && path === "/api/health") {
-    return sendJson(res, 200, { ok: true });
+    return sendJson(res, 200, { ok: true, storage: useSupabase ? "supabase" : "json" });
   }
 
   if (req.method === "POST" && path === "/api/inboxes") {
@@ -172,12 +298,15 @@ async function handleApi(req, res, url) {
       ownerKey: token(),
       createdAt: new Date().toISOString()
     };
-    db.inboxes.push(inbox);
-    await saveDb(db);
+    const savedInbox = useSupabase ? await insertInbox(inbox) : inbox;
+    if (!useSupabase) {
+      db.inboxes.push(inbox);
+      await saveDb(db);
+    }
     return sendJson(res, 201, {
-      inbox: publicInbox(inbox, db),
-      ownerKey: inbox.ownerKey,
-      manageUrl: `/inbox?handle=${encodeURIComponent(handle)}&key=${encodeURIComponent(inbox.ownerKey)}`
+      inbox: publicInbox(savedInbox, db),
+      ownerKey: savedInbox.ownerKey,
+      manageUrl: `/inbox?handle=${encodeURIComponent(handle)}&key=${encodeURIComponent(savedInbox.ownerKey)}`
     });
   }
 
@@ -221,9 +350,12 @@ async function handleApi(req, res, url) {
       repliedAt: null,
       archivedAt: null
     };
-    db.letters.push(letter);
-    await saveDb(db);
-    return sendJson(res, 201, { letter: { id: letter.id, createdAt: letter.createdAt } });
+    const savedLetter = useSupabase ? await insertLetter(letter) : letter;
+    if (!useSupabase) {
+      db.letters.push(letter);
+      await saveDb(db);
+    }
+    return sendJson(res, 201, { letter: { id: savedLetter.id, createdAt: savedLetter.createdAt } });
   }
 
   const ownerLettersMatch = path.match(/^\/api\/owner\/inboxes\/([^/]+)\/letters$/);
@@ -248,9 +380,13 @@ async function handleApi(req, res, url) {
     if (Object.hasOwn(body, "avatarUrl")) {
       const avatarUrl = cleanAvatar(body.avatarUrl);
       if (avatarUrl === null) return sendError(res, 400, "头像格式不支持或图片太大");
-      inbox.avatarUrl = avatarUrl;
+      if (useSupabase) {
+        Object.assign(inbox, await updateInbox(inbox.id, { avatarUrl }));
+      } else {
+        inbox.avatarUrl = avatarUrl;
+      }
     }
-    await saveDb(db);
+    if (!useSupabase) await saveDb(db);
     return sendJson(res, 200, { inbox: publicInbox(inbox, db) });
   }
 
@@ -263,10 +399,10 @@ async function handleApi(req, res, url) {
     const body = await readJson(req);
     const reply = cleanText(body.reply, 600);
     if (reply.length < 2) return sendError(res, 400, "回信至少两个字");
-    letter.reply = reply;
-    letter.status = "replied";
-    letter.repliedAt = new Date().toISOString();
-    await saveDb(db);
+    const patch = { reply, status: "replied", repliedAt: new Date().toISOString() };
+    if (useSupabase) Object.assign(letter, await updateLetter(letter.id, patch));
+    else Object.assign(letter, patch);
+    if (!useSupabase) await saveDb(db);
     return sendJson(res, 200, { letter });
   }
 
@@ -276,9 +412,10 @@ async function handleApi(req, res, url) {
     if (!letter) return sendError(res, 404, "没有找到这封信");
     const inbox = db.inboxes.find((item) => item.id === letter.inboxId);
     if (!requireOwner(req, inbox)) return sendError(res, 401, "管理密钥不正确");
-    letter.status = "archived";
-    letter.archivedAt = new Date().toISOString();
-    await saveDb(db);
+    const patch = { status: "archived", archivedAt: new Date().toISOString() };
+    if (useSupabase) Object.assign(letter, await updateLetter(letter.id, patch));
+    else Object.assign(letter, patch);
+    if (!useSupabase) await saveDb(db);
     return sendJson(res, 200, { letter });
   }
 
