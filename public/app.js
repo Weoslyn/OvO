@@ -95,7 +95,7 @@ function layout(content) {
         <nav class="nav">
           <button data-nav="/inbox/new">创建信箱</button>
           <button data-nav="/inbox/recover">找回信箱</button>
-          <button data-nav="/u/demo">示例</button>
+          <button data-nav="/u/demo">匿名信箱主页</button>
           <button data-nav="/inbox">收信管理</button>
           <div class="mode-menu">
             <button class="mode-trigger" type="button" data-mode-trigger>模式选择</button>
@@ -182,7 +182,7 @@ function renderHome() {
       <div class="actions">
         <button class="btn" data-nav="/inbox/new">创建我的信箱</button>
         <button class="btn secondary" data-nav="/inbox/recover">找回信箱</button>
-        <button class="btn secondary" data-nav="/u/demo">看看公开页</button>
+        <button class="btn secondary" data-nav="/u/demo">匿名信箱主页</button>
       </div>
     </section>
     <section class="grid">
@@ -345,11 +345,12 @@ async function renderProfile(handle) {
   try {
     const { inbox } = await api(`/api/inboxes/${encodeURIComponent(handle)}`);
     renderWithIntro(`
-      <section class="panel">
+      <section class="panel profile-home">
         <button class="profile-avatar-button" type="button" aria-label="选择头像">
           ${avatarHtml(inbox, "profile-avatar")}
         </button>
-        <h1 class="page-title">写给 ${escapeHtml(inbox.penName)}</h1>
+        <h1 class="page-title">${escapeHtml(inbox.penName)} 的匿名信箱</h1>
+        <p class="profile-id">ID：${escapeHtml(inbox.handle)}</p>
         <p class="subtle">${escapeHtml(inbox.bio || "匿名写一句，TA 可能会回信给你。")}</p>
         <form class="form" id="letter-form">
           <label>悄悄话
@@ -360,8 +361,8 @@ async function renderProfile(handle) {
         </form>
       </section>
       <section class="stack" style="margin-top:18px">
-        <h2>公开回信 <span class="pill">${inbox.replyCount}</span></h2>
-        ${inbox.replies.length ? inbox.replies.map(replyCard).join("") : `<p class="empty">还没有公开回信。</p>`}
+        <h2>已公开的信 <span class="pill">${inbox.replyCount}</span></h2>
+        ${inbox.replies.length ? inbox.replies.map(replyCard).join("") : `<p class="empty">还没有已公开的信。</p>`}
       </section>
     `);
     bindNav();
@@ -539,7 +540,7 @@ function ownerLetterCard(letter) {
     <article class="card letter" data-letter-id="${escapeHtml(letter.id)}">
       <div class="letter-meta">
         <span>${formatTime(letter.createdAt)}</span>
-        <span class="pill">${escapeHtml(letter.status)}</span>
+        <span class="pill">${escapeHtml(statusLabel(letter.status))}</span>
       </div>
       <p class="letter-body">${escapeHtml(letter.body)}</p>
       ${letter.reply ? `<p class="reply-body"><strong>我的回信：</strong>${escapeHtml(letter.reply)}</p>` : ""}
@@ -557,11 +558,49 @@ function ownerLetterCard(letter) {
   `;
 }
 
+function statusLabel(status) {
+  if (status === "replied") return "已公开";
+  if (status === "archived") return "已归档";
+  return "未公开";
+}
+
+function confirmPublicReply() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "confirm-overlay";
+    overlay.innerHTML = `
+      <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="privacy-confirm-title">
+        <h3 id="privacy-confirm-title">公开前确认</h3>
+        <p>请注意已经隐藏了可能泄露隐私的信息</p>
+        <div class="confirm-actions">
+          <button class="btn" type="button" data-confirm-public><span class="button-icon" aria-hidden="true">✓</span> 我知道了</button>
+          <button class="btn secondary" type="button" data-confirm-edit><span class="button-icon" aria-hidden="true">↩</span> 再编辑一下</button>
+        </div>
+      </div>
+    `;
+    document.body.append(overlay);
+    const finish = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+    overlay.querySelector("[data-confirm-public]").addEventListener("click", () => finish(true));
+    overlay.querySelector("[data-confirm-edit]").addEventListener("click", () => finish(false));
+  });
+}
+
 function bindOwnerActions(scope) {
   scope.querySelectorAll("[data-action='reply']").forEach((button) => {
     button.addEventListener("click", async () => {
       const card = button.closest("[data-letter-id]");
       const message = card.querySelector("[data-message]");
+      const canPublish = await confirmPublicReply();
+      if (!canPublish) {
+        message.className = "subtle";
+        message.textContent = "可以继续编辑。";
+        card.querySelector("[data-reply]")?.focus();
+        return;
+      }
+      message.className = "subtle";
       message.textContent = "正在保存...";
       try {
         await api(`/api/owner/letters/${encodeURIComponent(card.dataset.letterId)}/reply`, {
