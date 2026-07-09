@@ -93,9 +93,8 @@ function layout(content) {
       <header class="topbar">
         <button class="brand" data-nav="/">O<span>v</span>O</button>
         <nav class="nav">
+          <button data-nav="/">主页</button>
           <button data-nav="/inbox/new">创建信箱</button>
-          <button data-nav="/inbox/recover">找回信箱</button>
-          <button data-nav="/u/demo">匿名信箱主页</button>
           <button data-nav="/inbox">收信管理</button>
           <div class="mode-menu">
             <button class="mode-trigger" type="button" data-mode-trigger>模式选择</button>
@@ -181,14 +180,12 @@ function renderHome() {
       <p>一个轻量的匿名来信箱。先把产品流程跑通，视觉细节可以按你的方向慢慢调。</p>
       <div class="actions">
         <button class="btn" data-nav="/inbox/new">创建我的信箱</button>
-        <button class="btn secondary" data-nav="/inbox/recover">找回信箱</button>
-        <button class="btn secondary" data-nav="/u/demo">匿名信箱主页</button>
       </div>
     </section>
     <section class="grid">
       <article class="card">
         <h3>公开收信页</h3>
-        <p class="subtle">每个用户有自己的 /u/链接，访客匿名提交内容，主人可以选择是否公开回信。</p>
+        <p class="subtle">每个用户都有自己的专属链接，比如 /u/ovo。别人点进去就是给这个人投匿名信的页面。</p>
       </article>
       <article class="card">
         <h3>收信管理页</h3>
@@ -221,8 +218,10 @@ function renderNewInbox() {
         <p id="form-message" class="subtle"></p>
       </form>
     </section>
+    ${recoverSectionHtml("compact")}
   `);
   bindNav();
+  bindRecoverForms();
   app.querySelector("#new-inbox-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -244,7 +243,7 @@ function renderNewInbox() {
       state.owner.handle = result.inbox.handle;
       state.owner.key = result.ownerKey;
       message.className = "success";
-      message.innerHTML = `创建成功。公开页：<button class="link-button" type="button" data-nav="/u/${escapeHtml(result.inbox.handle)}">/u/${escapeHtml(result.inbox.handle)}</button><br />管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code><br /><span class="subtle">请保存这个密钥，可用于进入收信管理和找回信箱。</span>`;
+      message.innerHTML = `创建成功。专属投信链接：<button class="link-button" type="button" data-nav="/u/${escapeHtml(result.inbox.handle)}">/u/${escapeHtml(result.inbox.handle)}</button><br />管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code><br /><span class="subtle">别人点这个链接就是给你投匿名信。请保存管理密钥，可用于进入收信管理和找回信箱。</span>`;
       bindNav(message);
     } catch (err) {
       message.className = "error";
@@ -255,8 +254,17 @@ function renderNewInbox() {
 
 function renderRecover() {
   renderWithIntro(`
-    <section class="panel">
-      <h1 class="page-title">找回收信管理</h1>
+    ${recoverSectionHtml()}
+  `);
+  bindNav();
+  bindRecoverForms();
+}
+
+function recoverSectionHtml(mode = "") {
+  const title = mode === "compact" ? "找回已有信箱" : "找回收信管理";
+  return `
+    <section class="panel recover-panel">
+      <h1 class="${mode === "compact" ? "" : "page-title"}">${title}</h1>
       <p class="subtle">可以用创建时绑定的邮箱找回，也可以直接用管理密钥找回。密钥请只给信箱主人保存。</p>
       <form class="form" id="recover-form">
         <label>链接名
@@ -265,12 +273,10 @@ function renderRecover() {
         <label>绑定邮箱
           <input name="ownerEmail" type="email" placeholder="you@example.com" maxlength="120" required />
         </label>
-        <button class="btn" type="submit">找回</button>
+        <button class="btn secondary" type="submit">用邮箱找回</button>
         <p id="recover-message" class="subtle"></p>
       </form>
-    </section>
-    <section class="panel" style="margin-top:18px">
-      <h2>用管理密钥找回</h2>
+      <div class="recover-divider">或</div>
       <form class="form" id="recover-key-form">
         <label>管理密钥
           <input name="ownerKey" placeholder="例如 OVO1-2026-DEMO" maxlength="14" required />
@@ -279,8 +285,10 @@ function renderRecover() {
         <p id="recover-key-message" class="subtle"></p>
       </form>
     </section>
-  `);
-  bindNav();
+  `;
+}
+
+function bindRecoverForms() {
   app.querySelector("#recover-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -390,7 +398,16 @@ async function renderProfile(handle) {
       }
     });
   } catch (err) {
-    renderWithIntro(`<p class="empty error">${escapeHtml(err.message)}</p>`);
+    renderWithIntro(`
+      <section class="panel">
+        <h1 class="page-title">没有找到这个信箱</h1>
+        <p class="subtle">${escapeHtml(err.message)}。请检查专属链接是否正确，或创建/找回自己的信箱。</p>
+        <div class="actions">
+          <button class="btn" data-nav="/inbox/new">创建信箱</button>
+          <button class="btn secondary" data-nav="/inbox/recover">找回信箱</button>
+        </div>
+      </section>
+    `);
     bindNav();
   }
 }
