@@ -6,7 +6,7 @@ const state = {
     handle: new URLSearchParams(location.search).get("handle") || localStorage.getItem("letter_owner_handle") || "demo",
     key: new URLSearchParams(location.search).get("key") || localStorage.getItem("letter_owner_key") || ""
   },
-  ownerIntroPlayed: false
+  introPlayed: false
 };
 
 applyTheme(getStoredTheme());
@@ -111,7 +111,7 @@ function layout(content) {
   `;
 }
 
-function ownerIntroHtml() {
+function introHtml() {
   return `
     <div class="intro" aria-hidden="true">
       <div class="intro-mark">
@@ -121,6 +121,22 @@ function ownerIntroHtml() {
       </div>
     </div>
   `;
+}
+
+function renderWithIntro(content) {
+  const showIntro = !state.introPlayed;
+  app.innerHTML = `${showIntro ? introHtml() : ""}${layout(content)}`;
+  if (!showIntro) return;
+  state.introPlayed = true;
+  document.body.classList.add("intro-running");
+  window.setTimeout(() => {
+    const mark = app.querySelector(".intro-v");
+    if (mark) mark.textContent = "V";
+  }, 980);
+  window.setTimeout(() => {
+    document.body.classList.remove("intro-running");
+    app.querySelector(".intro")?.remove();
+  }, 3100);
 }
 
 function bindNav(scope = app) {
@@ -159,7 +175,7 @@ function render() {
 }
 
 function renderHome() {
-  app.innerHTML = layout(`
+  renderWithIntro(`
     <section class="hero">
       <h1>匿名写一句，认真回一封。</h1>
       <p>一个轻量的匿名来信箱。先把产品流程跑通，视觉细节可以按你的方向慢慢调。</p>
@@ -184,7 +200,7 @@ function renderHome() {
 }
 
 function renderNewInbox() {
-  app.innerHTML = layout(`
+  renderWithIntro(`
     <section class="panel">
       <h1 class="page-title">创建信箱</h1>
       <p class="subtle">先用链接名和展示名建立一个可访问的收信页。</p>
@@ -238,7 +254,7 @@ function renderNewInbox() {
 }
 
 function renderRecover() {
-  app.innerHTML = layout(`
+  renderWithIntro(`
     <section class="panel">
       <h1 class="page-title">找回收信管理</h1>
       <p class="subtle">可以用创建时绑定的邮箱找回，也可以直接用管理密钥找回。密钥请只给信箱主人保存。</p>
@@ -328,7 +344,7 @@ async function renderProfile(handle) {
   bindNav();
   try {
     const { inbox } = await api(`/api/inboxes/${encodeURIComponent(handle)}`);
-    app.innerHTML = layout(`
+    renderWithIntro(`
       <section class="panel">
         <button class="profile-avatar-button" type="button" aria-label="选择头像">
           ${avatarHtml(inbox, "profile-avatar")}
@@ -373,7 +389,7 @@ async function renderProfile(handle) {
       }
     });
   } catch (err) {
-    app.innerHTML = layout(`<p class="empty error">${escapeHtml(err.message)}</p>`);
+    renderWithIntro(`<p class="empty error">${escapeHtml(err.message)}</p>`);
     bindNav();
   }
 }
@@ -401,8 +417,7 @@ async function renderOwner() {
   if (state.owner.handle) localStorage.setItem("letter_owner_handle", state.owner.handle);
   if (state.owner.key) localStorage.setItem("letter_owner_key", state.owner.key);
 
-  const showIntro = !state.ownerIntroPlayed;
-  app.innerHTML = `${showIntro ? ownerIntroHtml() : ""}${layout(`
+  renderWithIntro(`
     <section class="panel">
       <h1 class="page-title">收信管理</h1>
       <p class="subtle">这里是信箱主人使用的管理页。别人匿名写来的内容会先进入这里，只有你选择“公开回信”后，来信和回信才会出现在公开页。</p>
@@ -418,19 +433,7 @@ async function renderOwner() {
       </form>
     </section>
     <section id="owner-list" class="stack" style="margin-top:18px"></section>
-  `)}`;
-  if (showIntro) {
-    state.ownerIntroPlayed = true;
-    document.body.classList.add("intro-running");
-    window.setTimeout(() => {
-      const mark = app.querySelector(".intro-v");
-      if (mark) mark.textContent = "V";
-    }, 980);
-    window.setTimeout(() => {
-      document.body.classList.remove("intro-running");
-      app.querySelector(".intro")?.remove();
-    }, 3100);
-  }
+  `);
   bindNav();
   app.querySelector("#owner-auth").addEventListener("submit", (event) => {
     event.preventDefault();

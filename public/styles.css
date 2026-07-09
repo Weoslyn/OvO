@@ -160,7 +160,7 @@ button {
 
 .intro-mark {
   position: relative;
-  width: 230px;
+  width: 234px;
   height: 150px;
   color: var(--accent-strong);
   animation: markTravel 0.85s cubic-bezier(0.22, 0.9, 0.2, 1) forwards;
@@ -173,6 +173,8 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 78px;
+  text-align: center;
   font-size: 92px;
   font-weight: 800;
   line-height: 1;
@@ -192,11 +194,11 @@ button {
 }
 
 .intro-o-left {
-  --end-x: -92px;
+  --end-x: -78px;
 }
 
 .intro-o-right {
-  --end-x: 92px;
+  --end-x: 78px;
 }
 
 body.intro-running .shell {
@@ -498,7 +500,7 @@ textarea {
     transform: translate(0, 0) scale(1);
   }
   100% {
-    transform: translate(calc(-50vw + 56px), calc(-50vh + 30px)) scale(0.24);
+    transform: translate(calc(-50vw + 57px), calc(-50vh + 30px)) scale(0.24);
   }
 }
 
