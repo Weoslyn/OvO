@@ -316,13 +316,14 @@ async function renderProfile(handle) {
     });
     app.querySelector("#letter-form").addEventListener("submit", async (event) => {
       event.preventDefault();
-      const body = new FormData(event.currentTarget).get("body");
+      const formElement = event.currentTarget;
+      const body = new FormData(formElement).get("body");
       const message = app.querySelector("#letter-message");
       message.className = "subtle";
       message.textContent = "正在寄出...";
       try {
         await api(`/api/inboxes/${encodeURIComponent(handle)}/letters`, { method: "POST", body: { body } });
-        event.currentTarget.reset();
+        formElement.reset();
         message.className = "success";
         message.textContent = "已经匿名寄出。";
       } catch (err) {
