@@ -5,6 +5,7 @@
       "handle": "demo",
       "penName": "Demo",
       "bio": "把没说出口的话放在这里。",
+      "ownerEmail": "demo@example.com",
       "ownerKey": "OVO1-2026-DEMO",
       "createdAt": "2026-07-08T04:56:20.822Z",
       "avatarUrl": ""

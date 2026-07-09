@@ -94,6 +94,7 @@ function layout(content) {
         <button class="brand" data-nav="/">O<span>v</span>O</button>
         <nav class="nav">
           <button data-nav="/inbox/new">创建信箱</button>
+          <button data-nav="/inbox/recover">找回信箱</button>
           <button data-nav="/u/demo">示例</button>
           <button data-nav="/inbox">收信管理</button>
           <div class="mode-menu">
@@ -164,6 +165,7 @@ function renderHome() {
       <p>一个轻量的匿名来信箱。先把产品流程跑通，视觉细节可以按你的方向慢慢调。</p>
       <div class="actions">
         <button class="btn" data-nav="/inbox/new">创建我的信箱</button>
+        <button class="btn secondary" data-nav="/inbox/recover">找回信箱</button>
         <button class="btn secondary" data-nav="/u/demo">看看公开页</button>
       </div>
     </section>
@@ -226,7 +228,7 @@ function renderNewInbox() {
       state.owner.handle = result.inbox.handle;
       state.owner.key = result.ownerKey;
       message.className = "success";
-      message.innerHTML = `创建成功。公开页：<button class="link-button" type="button" data-nav="/u/${escapeHtml(result.inbox.handle)}">/u/${escapeHtml(result.inbox.handle)}</button><br />管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code>`;
+      message.innerHTML = `创建成功。公开页：<button class="link-button" type="button" data-nav="/u/${escapeHtml(result.inbox.handle)}">/u/${escapeHtml(result.inbox.handle)}</button><br />管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code><br /><span class="subtle">请保存这个密钥，可用于进入收信管理和找回信箱。</span>`;
       bindNav(message);
     } catch (err) {
       message.className = "error";
@@ -239,7 +241,7 @@ function renderRecover() {
   app.innerHTML = layout(`
     <section class="panel">
       <h1 class="page-title">找回收信管理</h1>
-      <p class="subtle">输入信箱链接名和创建时绑定的邮箱。当前原型会在匹配后直接显示管理入口；正式上线时建议改成发送邮件验证码或魔法链接。</p>
+      <p class="subtle">可以用创建时绑定的邮箱找回，也可以直接用管理密钥找回。密钥请只给信箱主人保存。</p>
       <form class="form" id="recover-form">
         <label>链接名
           <input name="handle" placeholder="例如 ovo" minlength="3" maxlength="24" required />
@@ -249,6 +251,16 @@ function renderRecover() {
         </label>
         <button class="btn" type="submit">找回</button>
         <p id="recover-message" class="subtle"></p>
+      </form>
+    </section>
+    <section class="panel" style="margin-top:18px">
+      <h2>用管理密钥找回</h2>
+      <form class="form" id="recover-key-form">
+        <label>管理密钥
+          <input name="ownerKey" placeholder="例如 OVO1-2026-DEMO" maxlength="14" required />
+        </label>
+        <button class="btn secondary" type="submit">用密钥找回</button>
+        <p id="recover-key-message" class="subtle"></p>
       </form>
     </section>
   `);
@@ -273,13 +285,42 @@ function renderRecover() {
       localStorage.setItem("letter_owner_handle", state.owner.handle);
       localStorage.setItem("letter_owner_key", state.owner.key);
       message.className = "success";
-      message.innerHTML = `已找到 ${escapeHtml(result.inbox.penName)} 的信箱。<button class="link-button" type="button" data-nav="${escapeHtml(result.manageUrl)}">进入收信管理</button>`;
+      message.innerHTML = recoverResultHtml(result);
       bindNav(message);
     } catch (err) {
       message.className = "error";
       message.textContent = err.message;
     }
   });
+  app.querySelector("#recover-key-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const message = app.querySelector("#recover-key-message");
+    message.className = "subtle";
+    message.textContent = "正在匹配...";
+    try {
+      const result = await api("/api/inboxes/recover-key", {
+        method: "POST",
+        body: {
+          ownerKey: form.get("ownerKey")
+        }
+      });
+      state.owner.handle = result.inbox.handle;
+      state.owner.key = result.ownerKey;
+      localStorage.setItem("letter_owner_handle", state.owner.handle);
+      localStorage.setItem("letter_owner_key", state.owner.key);
+      message.className = "success";
+      message.innerHTML = recoverResultHtml(result);
+      bindNav(message);
+    } catch (err) {
+      message.className = "error";
+      message.textContent = err.message;
+    }
+  });
+}
+
+function recoverResultHtml(result) {
+  return `已找到 ${escapeHtml(result.inbox.penName)} 的信箱。<br />链接名：<code class="key-code">${escapeHtml(result.inbox.handle)}</code><br />管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code><br /><button class="link-button" type="button" data-nav="${escapeHtml(result.manageUrl)}">进入收信管理</button>`;
 }
 
 async function renderProfile(handle) {
