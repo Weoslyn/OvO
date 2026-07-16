@@ -779,7 +779,7 @@ async function loadOwnerLetters() {
     `;
     bindNav(mount);
     bindAvatarPicker(mount, result.inbox);
-    bindOwnerActions(mount);
+    bindOwnerActions(mount, result.inbox);
     bindOwnerLinkTools(mount, result.inbox);
   } catch (err) {
     mount.innerHTML = `<p class="empty error">${escapeHtml(err.message)}</p>`;
@@ -997,7 +997,7 @@ function confirmArchive() {
   });
 }
 
-function confirmImageText(defaultText) {
+function confirmImageText(defaultLetter, defaultReply) {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.className = "confirm-overlay";
@@ -1005,7 +1005,12 @@ function confirmImageText(defaultText) {
       <div class="confirm-dialog image-dialog" role="dialog" aria-modal="true">
         <h3>生成图片前确认</h3>
         <p>将申请保存或分享图片。请先手动编辑内容，确认已经保护寄信者隐私后再生成。</p>
-        <textarea data-image-text maxlength="900">${escapeHtml(defaultText)}</textarea>
+        <label>来信
+          <textarea data-image-letter maxlength="600">${escapeHtml(defaultLetter)}</textarea>
+        </label>
+        <label>回信
+          <textarea data-image-reply maxlength="600">${escapeHtml(defaultReply)}</textarea>
+        </label>
         <div class="confirm-actions">
           <button class="btn" type="button" data-confirm-image>确认生成图片</button>
           <button class="btn secondary" type="button" data-cancel-image>取消</button>
@@ -1013,14 +1018,17 @@ function confirmImageText(defaultText) {
       </div>
     `;
     document.body.append(overlay);
-    const textarea = overlay.querySelector("[data-image-text]");
+    const textarea = overlay.querySelector("[data-image-letter]");
     textarea.focus();
     const finish = (value) => {
       overlay.remove();
       resolve(value);
     };
-    overlay.querySelector("[data-confirm-image]").addEventListener("click", () => finish(textarea.value));
-    overlay.querySelector("[data-cancel-image]").addEventListener("click", () => finish(""));
+    overlay.querySelector("[data-confirm-image]").addEventListener("click", () => finish({
+      letter: overlay.querySelector("[data-image-letter]").value,
+      reply: overlay.querySelector("[data-image-reply]").value
+    }));
+    overlay.querySelector("[data-cancel-image]").addEventListener("click", () => finish(null));
   });
 }
 
@@ -1045,36 +1053,129 @@ function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
   return cursor;
 }
 
-async function generateLetterImage(text) {
+function canvasTheme() {
+  if (currentTheme() === "dark") {
+    return {
+      bg: "#111c2c",
+      paper: "#43566b",
+      card: "#32465d",
+      line: "#60758d",
+      ink: "#f6f8fb",
+      muted: "#d5dde7",
+      brand: "#c4cbd3"
+    };
+  }
+  return {
+    bg: "#f2f4f7",
+    paper: "#ffffff",
+    card: "#edf3f8",
+    line: "#d9e0e8",
+    ink: "#24303d",
+    muted: "#6f7b89",
+    brand: "#3f5872"
+  };
+}
+
+function drawRoundRect(ctx, x, y, width, height, radius) {
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, radius);
+    ctx.fill();
+    ctx.stroke();
+    return;
+  }
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeRect(x, y, width, height);
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    if (!src) {
+      resolve(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function drawAvatar(ctx, inbox, x, y, size, palette) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.clip();
+  const image = await loadImage(inbox.avatarUrl).catch(() => null);
+  if (image) {
+    ctx.drawImage(image, x, y, size, size);
+  } else {
+    ctx.fillStyle = palette.card;
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = palette.brand;
+    ctx.font = "800 54px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText((inbox.penName || "O").trim().slice(0, 1).toUpperCase(), x + size / 2, y + size / 2 + 2);
+  }
+  ctx.restore();
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+async function generateLetterImage(content, inbox) {
   const canvas = document.createElement("canvas");
   const width = 1080;
   const height = 1440;
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#f2f4f7";
+  const palette = canvasTheme();
+  ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#d9e0e8";
+  ctx.fillStyle = palette.paper;
+  ctx.strokeStyle = palette.line;
   ctx.lineWidth = 3;
-  if (ctx.roundRect) {
-    ctx.beginPath();
-    ctx.roundRect(80, 80, width - 160, height - 160, 28);
-    ctx.fill();
-    ctx.stroke();
-  } else {
-    ctx.fillRect(80, 80, width - 160, height - 160);
-    ctx.strokeRect(80, 80, width - 160, height - 160);
-  }
-  ctx.fillStyle = "#3f5872";
+  drawRoundRect(ctx, 70, 70, width - 140, height - 140, 28);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = palette.brand;
   ctx.font = "700 56px sans-serif";
-  ctx.fillText("OvO", 130, 170);
-  ctx.fillStyle = "#24303d";
-  ctx.font = "36px sans-serif";
-  wrapCanvasText(ctx, text, 130, 250, width - 260, 58);
-  ctx.fillStyle = "#6f7b89";
+  ctx.fillText("OvO", 120, 155);
+
+  await drawAvatar(ctx, inbox, width / 2 - 54, 190, 108, palette);
+  ctx.textAlign = "center";
+  ctx.fillStyle = palette.ink;
+  ctx.font = "700 38px sans-serif";
+  ctx.fillText(inbox.penName || "匿名信箱", width / 2, 345);
+  ctx.fillStyle = palette.muted;
   ctx.font = "26px sans-serif";
-  ctx.fillText("由 OvO 匿名信箱生成", 130, height - 130);
+  ctx.fillText(`ID: ${inbox.handle || "ovo"}`, width / 2, 386);
+
+  const boxX = 120;
+  const boxWidth = width - 240;
+  const drawTextBox = (title, text, y, minHeight) => {
+    ctx.fillStyle = palette.card;
+    ctx.strokeStyle = palette.line;
+    drawRoundRect(ctx, boxX, y, boxWidth, minHeight, 22);
+    ctx.textAlign = "left";
+    ctx.fillStyle = palette.brand;
+    ctx.font = "700 30px sans-serif";
+    ctx.fillText(title, boxX + 34, y + 56);
+    ctx.fillStyle = palette.ink;
+    ctx.font = "34px sans-serif";
+    wrapCanvasText(ctx, text || " ", boxX + 34, y + 112, boxWidth - 68, 52);
+  };
+  drawTextBox("来信", content.letter, 455, 330);
+  drawTextBox("回信", content.reply, 835, 390);
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = palette.muted;
+  ctx.font = "26px sans-serif";
+  ctx.fillText("由 OvO 匿名信箱生成", 120, height - 120);
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   const file = new File([blob], `ovo-letter-${Date.now()}.png`, { type: "image/png" });
   if (navigator.canShare?.({ files: [file] })) {
@@ -1088,7 +1189,7 @@ async function generateLetterImage(text) {
   window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
-function bindOwnerActions(scope) {
+function bindOwnerActions(scope, inbox) {
   scope.querySelectorAll("[data-action='toggle-tools']").forEach((button) => {
     button.addEventListener("click", () => {
       const tools = button.closest("[data-letter-id]")?.querySelector(".owner-tools");
@@ -1151,10 +1252,10 @@ function bindOwnerActions(scope) {
       const card = button.closest("[data-letter-id]");
       const letter = card.querySelector(".letter-body")?.textContent || "";
       const reply = card.querySelector("[data-reply]")?.value || card.querySelector(".reply-body")?.textContent?.replace(/^我的回信：/, "") || "";
-      const text = await confirmImageText(`来信：\n${letter}\n\n回信：\n${reply}`);
-      if (!text) return;
+      const content = await confirmImageText(letter, reply);
+      if (!content) return;
       try {
-        await generateLetterImage(text);
+        await generateLetterImage(content, inbox);
       } catch (err) {
         const message = card.querySelector("[data-message]");
         if (message) {

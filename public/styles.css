@@ -768,7 +768,7 @@ textarea {
 
 .image-dialog textarea {
   width: 100%;
-  min-height: 260px;
+  min-height: 150px;
   margin-bottom: 14px;
 }
 
