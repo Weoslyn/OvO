@@ -406,6 +406,7 @@ async function renderSquarePost(id) {
     `);
     bindNav();
     bindSquarePostActions(app);
+    bindSquareCommentActions(app);
     app.querySelector("#comment-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const formElement = event.currentTarget;
@@ -441,14 +442,36 @@ async function renderSquarePost(id) {
 
 function commentCard(comment) {
   return `
-    <article class="card comment-card">
+    <article class="card comment-card" data-comment-id="${escapeHtml(comment.id)}">
       <div class="letter-meta">
         <strong>${escapeHtml(comment.authorName)}</strong>
         <span>${formatTime(comment.createdAt)}</span>
       </div>
       <p class="letter-body">${escapeHtml(comment.body)}</p>
+      <div class="post-footer">
+        <span></span>
+        <button class="like-button" type="button" data-like-comment>赞 <span>${escapeHtml(comment.likeCount || 0)}</span></button>
+      </div>
     </article>
   `;
+}
+
+function bindSquareCommentActions(scope) {
+  scope.querySelectorAll("[data-like-comment]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const card = button.closest("[data-comment-id]");
+      try {
+        const result = await api(`/api/square/comments/${encodeURIComponent(card.dataset.commentId)}/like`, {
+          method: "POST",
+          body: { voterId: getVoterId() }
+        });
+        button.querySelector("span").textContent = result.likeCount;
+        button.classList.add("liked");
+      } catch (err) {
+        button.textContent = err.message;
+      }
+    });
+  });
 }
 
 function chooseCommentIdentity() {
@@ -827,7 +850,7 @@ function ownerTabsHtml() {
   const tabs = [
     ["received", "收到的来信"],
     ["sent", "寄出的信"],
-    ["posts", "广场的帖子"]
+    ["posts", "广场帖"]
   ];
   return `
     <section class="owner-tabs-panel">

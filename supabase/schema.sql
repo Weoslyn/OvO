@@ -68,3 +68,14 @@ create table if not exists public.square_comments (
 
 create index if not exists square_comments_post_id_created_at_idx
   on public.square_comments (post_id, created_at asc);
+
+create table if not exists public.square_comment_likes (
+  id uuid primary key,
+  comment_id uuid not null references public.square_comments(id) on delete cascade,
+  voter_id text not null,
+  created_at timestamptz not null default now(),
+  unique (comment_id, voter_id)
+);
+
+create index if not exists square_comment_likes_comment_id_idx
+  on public.square_comment_likes (comment_id);
