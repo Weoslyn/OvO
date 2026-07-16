@@ -7,6 +7,7 @@ const state = {
     key: new URLSearchParams(location.search).get("key") || localStorage.getItem("letter_owner_key") || ""
   },
   squareSort: new URLSearchParams(location.search).get("sort") === "hot" ? "hot" : "new",
+  ownerTab: "received",
   introPlayed: false
 };
 
@@ -221,6 +222,17 @@ async function renderHome() {
           <button class="${state.squareSort === "new" ? "active" : ""}" type="button" data-sort-square="new">最新</button>
         </div>
       </div>
+      <form class="search-row" id="square-search-form">
+        <select name="type" aria-label="搜索类型">
+          <option value="author">发帖人名字</option>
+          <option value="keyword">关键词</option>
+          <option value="date">发帖时间</option>
+        </select>
+        <input name="q" placeholder="搜索广场帖子" />
+        <input name="date" type="date" hidden />
+        <button class="btn secondary" type="submit">搜索</button>
+        <button class="link-button inline" type="button" data-clear-square-search>清空</button>
+      </form>
       <div id="square-list"><p class="empty">正在读取广场...</p></div>
     </section>
   `);
@@ -249,6 +261,22 @@ function bindSquareHome() {
       app.querySelectorAll("[data-sort-square]").forEach((item) => item.classList.toggle("active", item === button));
       await loadSquarePosts();
     });
+  });
+  const searchForm = app.querySelector("#square-search-form");
+  searchForm?.querySelector("[name='type']").addEventListener("change", (event) => {
+    const isDate = event.currentTarget.value === "date";
+    searchForm.querySelector("[name='q']").hidden = isDate;
+    searchForm.querySelector("[name='date']").hidden = !isDate;
+  });
+  searchForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await loadSquarePosts();
+  });
+  app.querySelector("[data-clear-square-search]")?.addEventListener("click", async () => {
+    searchForm.reset();
+    searchForm.querySelector("[name='q']").hidden = false;
+    searchForm.querySelector("[name='date']").hidden = true;
+    await loadSquarePosts();
   });
   app.querySelector("#square-post-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -282,7 +310,18 @@ async function loadSquarePosts() {
   if (!mount) return;
   mount.innerHTML = `<p class="empty">正在读取广场...</p>`;
   try {
-    const { posts } = await api(`/api/square/posts?sort=${encodeURIComponent(state.squareSort)}`);
+    const form = app.querySelector("#square-search-form");
+    const params = new URLSearchParams({ sort: state.squareSort });
+    if (form) {
+      const data = new FormData(form);
+      const type = String(data.get("type") || "author");
+      const value = type === "date" ? data.get("date") : data.get("q");
+      if (value) {
+        params.set("searchType", type);
+        params.set("q", String(value));
+      }
+    }
+    const { posts } = await api(`/api/square/posts?${params.toString()}`);
     mount.innerHTML = posts.length ? posts.map(squarePostCard).join("") : `<p class="empty">广场还没有帖子。</p>`;
     bindNav(mount);
     bindSquarePostActions(mount);
@@ -771,19 +810,84 @@ async function loadOwnerLetters() {
         </div>
       </div>
       ${ownerStatsHtml(result.stats)}
-      ${result.letters.length ? result.letters.map(ownerLetterCard).join("") : `<p class="empty">还没有来信。</p>`}
-      <section class="panel sent-panel">
-        <h2>已寄出的邮件</h2>
-        ${result.sent?.length ? result.sent.map(sentLetterCard).join("") : `<p class="empty">登录状态下给别人写信后，会显示在这里。</p>`}
-      </section>
+      ${ownerTabsHtml()}
+      <section id="owner-tab-content" class="stack"></section>
     `;
     bindNav(mount);
     bindAvatarPicker(mount, result.inbox);
     bindOwnerActions(mount, result.inbox);
     bindOwnerLinkTools(mount, result.inbox);
+    bindOwnerTabs(mount, result);
   } catch (err) {
     mount.innerHTML = `<p class="empty error">${escapeHtml(err.message)}</p>`;
   }
+}
+
+function ownerTabsHtml() {
+  const tabs = [
+    ["received", "收到的来信"],
+    ["sent", "寄出的信"],
+    ["posts", "广场的帖子"]
+  ];
+  return `
+    <section class="owner-tabs-panel">
+      <div class="owner-tabs">
+        ${tabs.map(([key, label]) => `<button class="${state.ownerTab === key ? "active" : ""}" type="button" data-owner-tab="${key}">${label}</button>`).join("")}
+      </div>
+      <form class="search-row owner-search" id="owner-search-form">
+        <input name="q" placeholder="${escapeHtml(ownerSearchPlaceholder())}" />
+        <button class="btn secondary" type="submit">搜索</button>
+        <button class="link-button inline" type="button" data-clear-owner-search>清空</button>
+      </form>
+    </section>
+  `;
+}
+
+function ownerSearchPlaceholder() {
+  if (state.ownerTab === "sent") return "搜索寄出的信或回复";
+  if (state.ownerTab === "posts") return "搜索发过的广场帖子";
+  return "搜索收到的信或自己的回信";
+}
+
+function bindOwnerTabs(scope, result) {
+  const renderTab = () => {
+    scope.querySelectorAll("[data-owner-tab]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.ownerTab === state.ownerTab);
+    });
+    const input = scope.querySelector("#owner-search-form [name='q']");
+    if (input) input.placeholder = ownerSearchPlaceholder();
+    const query = String(new FormData(scope.querySelector("#owner-search-form")).get("q") || "").trim().toLowerCase();
+    const content = scope.querySelector("#owner-tab-content");
+    if (state.ownerTab === "sent") {
+      const sent = (result.sent || []).filter((letter) => `${letter.body} ${letter.reply} ${letter.target?.penName || ""} ${letter.target?.handle || ""}`.toLowerCase().includes(query));
+      content.innerHTML = sent.length ? sent.map(sentLetterCard).join("") : `<p class="empty">没有匹配的寄出信。</p>`;
+    } else if (state.ownerTab === "posts") {
+      const posts = (result.posts || []).filter((post) => `${post.body} ${post.author.penName} ${post.author.handle}`.toLowerCase().includes(query));
+      content.innerHTML = posts.length ? posts.map(squarePostCard).join("") : `<p class="empty">没有匹配的广场帖子。</p>`;
+      bindNav(content);
+      bindSquarePostActions(content);
+    } else {
+      const letters = result.letters.filter((letter) => `${letter.body} ${letter.reply || ""}`.toLowerCase().includes(query));
+      content.innerHTML = letters.length ? letters.map(ownerLetterCard).join("") : `<p class="empty">没有匹配的来信。</p>`;
+      bindOwnerActions(content, result.inbox);
+    }
+  };
+  scope.querySelectorAll("[data-owner-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.ownerTab = button.dataset.ownerTab;
+      scope.querySelector("#owner-search-form").reset();
+      renderTab();
+    });
+  });
+  scope.querySelector("#owner-search-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    renderTab();
+  });
+  scope.querySelector("[data-clear-owner-search]").addEventListener("click", () => {
+    scope.querySelector("#owner-search-form").reset();
+    renderTab();
+  });
+  renderTab();
 }
 
 function bindOwnerLinkTools(scope, inbox) {
@@ -926,7 +1030,7 @@ function ownerLetterCard(letter) {
       ${needsChoice ? `
           <div class="owner-choice-row">
             <button class="link-button inline" type="button" data-action="toggle-tools">${isArchived ? "选择是否重新公开？" : "重新选择是否公开？"}</button>
-            ${letter.reply ? `<button class="link-button inline" type="button" data-action="image">生成图片</button>` : ""}
+            ${isPublished && letter.reply ? `<button class="link-button inline" type="button" data-action="image">生成图片</button>` : ""}
           </div>
         ` : ""}
         <div class="owner-tools" ${needsChoice ? "hidden" : ""}>
@@ -934,7 +1038,6 @@ function ownerLetterCard(letter) {
           <div class="actions" style="justify-content:flex-start;margin-top:0">
             <button class="btn" data-action="reply">${isArchived ? "重新公开" : "公开回复"}</button>
             <button class="btn danger" data-action="archive">${isPublished ? "改为不公开" : "归档为不公开"}</button>
-            ${!isPublished && letter.reply ? `<button class="btn secondary" data-action="image">生成图片</button>` : ""}
           </div>
           <p class="subtle">归档为不公开表示：收信人和登录状态的寄信人可以看到这封回复，但不会出现在公开页面。</p>
           <p class="subtle" data-message></p>

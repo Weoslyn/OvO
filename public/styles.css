@@ -340,6 +340,7 @@ label {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -381,6 +382,45 @@ textarea {
 .stack {
   display: grid;
   gap: 14px;
+}
+
+.search-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-row input,
+.search-row select {
+  min-width: 0;
+}
+
+.owner-tabs-panel {
+  display: grid;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.owner-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.owner-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  padding: 10px 6px;
+  font-weight: 700;
+}
+
+.owner-tabs button.active {
+  border-bottom-color: var(--accent-strong);
+  color: var(--accent-strong);
 }
 
 .letter {
@@ -811,6 +851,10 @@ textarea {
   }
 
   .comment-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .search-row {
     grid-template-columns: 1fr;
   }
 
