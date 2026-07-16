@@ -33,7 +33,14 @@
       "archivedAt": null
     }
   ],
-  "squarePosts": [],
+  "squarePosts": [
+    {
+      "id": "a2da5275-07b4-4d50-b9bc-e453714c05c8",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "body": "Hi这里是小w的广场！欢迎一起玩\nLet's 互动 (◍＞◡＜◍)",
+      "createdAt": "2026-07-16T06:56:30.805Z"
+    }
+  ],
   "squareLikes": [],
   "squareComments": []
 }
