@@ -102,5 +102,12 @@
       "createdAt": "2026-07-16T07:29:32.719Z"
     }
   ],
-  "squareCommentLikes": []
+  "squareCommentLikes": [
+    {
+      "id": "85b28984-3c6b-48c9-b806-65d1f8d2e8d5",
+      "commentId": "d439d664-d9c8-42c5-bc8c-d191ccaf6093",
+      "voterId": "voter_s4k2nw6b13_mrn688vk",
+      "createdAt": "2026-07-16T07:39:29.210Z"
+    }
+  ]
 }
