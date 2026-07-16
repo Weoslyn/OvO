@@ -3,7 +3,7 @@ const app = document.querySelector("#app");
 const state = {
   route: parseRoute(),
   owner: {
-    handle: new URLSearchParams(location.search).get("handle") || localStorage.getItem("letter_owner_handle") || "demo",
+    handle: new URLSearchParams(location.search).get("handle") || localStorage.getItem("letter_owner_handle") || "",
     key: new URLSearchParams(location.search).get("key") || localStorage.getItem("letter_owner_key") || ""
   },
   squareSort: new URLSearchParams(location.search).get("sort") === "hot" ? "hot" : "new",
@@ -601,13 +601,14 @@ async function renderProfile(handle) {
         <h1 class="page-title">${escapeHtml(inbox.penName)} 的匿名信箱</h1>
         <p class="profile-id">ID：${escapeHtml(inbox.handle)}</p>
         <p class="subtle">${escapeHtml(inbox.bio || "匿名写一句，TA 可能会回信给你。")}</p>
-        <form class="form" id="letter-form">
-          <label>悄悄话
-            <textarea name="body" maxlength="600" placeholder="把想说的话写在这里" required></textarea>
-          </label>
-          <button class="btn" type="submit">匿名寄出</button>
-          <p id="letter-message" class="subtle"></p>
-        </form>
+      <form class="form" id="letter-form">
+        <label>悄悄话
+          <textarea name="body" maxlength="600" placeholder="把想说的话写在这里" required></textarea>
+        </label>
+        <button class="btn" type="submit">匿名寄出</button>
+        ${state.owner.handle && state.owner.key ? `<p class="subtle">当前设备已绑定 ${escapeHtml(state.owner.handle)}，寄出后可在自己的信箱页查看已寄出的邮件和回复。</p>` : ""}
+        <p id="letter-message" class="subtle"></p>
+      </form>
       </section>
       <section class="stack" style="margin-top:18px">
         <h2>已公开的信 <span class="pill">${inbox.replyCount}</span></h2>
@@ -730,7 +731,7 @@ async function loadOwnerLetters() {
         </button>
         <div class="owner-profile-main">
           <strong>${escapeHtml(result.inbox.penName)} 的来信</strong>
-          <span class="subtle">点击圆形头像可从相册或文件中选择图片。</span>
+          <span class="subtle">这个信箱已绑定到当前设备。点击圆形头像可从相册或文件中选择图片。</span>
           <p class="subtle" data-avatar-message></p>
         </div>
         <button class="btn secondary" data-nav="/u/${escapeHtml(result.inbox.handle)}">打开公开页</button>
@@ -841,7 +842,9 @@ function fileToDataUrl(file) {
 }
 
 function ownerLetterCard(letter) {
-  const canReply = letter.status !== "archived";
+  const isArchived = letter.status === "archived";
+  const isPublished = letter.status === "replied";
+  const canReply = !isArchived;
   return `
     <article class="card letter" data-letter-id="${escapeHtml(letter.id)}">
       <div class="letter-meta">
@@ -851,15 +854,23 @@ function ownerLetterCard(letter) {
       <p class="letter-body">${escapeHtml(letter.body)}</p>
       ${letter.reply ? `<p class="reply-body"><strong>我的回信：</strong>${escapeHtml(letter.reply)}</p>` : ""}
       ${canReply ? `
-        <div class="owner-tools">
+        ${isPublished ? `
+          <div class="owner-choice-row">
+            <button class="link-button inline" type="button" data-action="toggle-tools">重新选择是否公开？</button>
+            <button class="link-button inline" type="button" data-action="image">生成图片</button>
+          </div>
+        ` : ""}
+        <div class="owner-tools" ${isPublished ? "hidden" : ""}>
           <textarea data-reply placeholder="写一封公开回信">${escapeHtml(letter.reply || "")}</textarea>
           <div class="actions" style="justify-content:flex-start;margin-top:0">
-            <button class="btn" data-action="reply">公开回信</button>
+            <button class="btn" data-action="reply">${isPublished ? "继续公开" : "公开回信"}</button>
             <button class="btn danger" data-action="archive">归档</button>
+            ${!isPublished ? `<button class="btn secondary" data-action="image">生成图片</button>` : ""}
           </div>
+          <p class="subtle">归档表示这封信只保留在你的收信管理里，不会出现在公开页面。</p>
           <p class="subtle" data-message></p>
         </div>
-      ` : ""}
+      ` : `<p class="subtle">已归档：仅保留在收信管理里，不会公开展示。</p>`}
     </article>
   `;
 }
@@ -894,7 +905,128 @@ function confirmPublicReply() {
   });
 }
 
+function confirmArchive() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "confirm-overlay";
+    overlay.innerHTML = `
+      <div class="confirm-dialog" role="dialog" aria-modal="true">
+        <h3>归档确认</h3>
+        <p>确定不公开回复仅作归档处理？归档后这封信只会保留在你的收信管理里，不会出现在公开页面。</p>
+        <div class="confirm-actions">
+          <button class="btn danger" type="button" data-confirm-archive>确定归档</button>
+          <button class="btn secondary" type="button" data-cancel-archive>再想想</button>
+        </div>
+      </div>
+    `;
+    document.body.append(overlay);
+    const finish = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+    overlay.querySelector("[data-confirm-archive]").addEventListener("click", () => finish(true));
+    overlay.querySelector("[data-cancel-archive]").addEventListener("click", () => finish(false));
+  });
+}
+
+function confirmImageText(defaultText) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "confirm-overlay";
+    overlay.innerHTML = `
+      <div class="confirm-dialog image-dialog" role="dialog" aria-modal="true">
+        <h3>生成图片前确认</h3>
+        <p>将申请保存或分享图片。请先手动编辑内容，确认已经保护寄信者隐私后再生成。</p>
+        <textarea data-image-text maxlength="900">${escapeHtml(defaultText)}</textarea>
+        <div class="confirm-actions">
+          <button class="btn" type="button" data-confirm-image>确认生成图片</button>
+          <button class="btn secondary" type="button" data-cancel-image>取消</button>
+        </div>
+      </div>
+    `;
+    document.body.append(overlay);
+    const textarea = overlay.querySelector("[data-image-text]");
+    textarea.focus();
+    const finish = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+    overlay.querySelector("[data-confirm-image]").addEventListener("click", () => finish(textarea.value));
+    overlay.querySelector("[data-cancel-image]").addEventListener("click", () => finish(""));
+  });
+}
+
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+  const paragraphs = String(text || "").split("\n");
+  let cursor = y;
+  paragraphs.forEach((paragraph) => {
+    let line = "";
+    Array.from(paragraph || " ").forEach((char) => {
+      const test = line + char;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        ctx.fillText(line, x, cursor);
+        cursor += lineHeight;
+        line = char;
+      } else {
+        line = test;
+      }
+    });
+    ctx.fillText(line, x, cursor);
+    cursor += lineHeight;
+  });
+  return cursor;
+}
+
+async function generateLetterImage(text) {
+  const canvas = document.createElement("canvas");
+  const width = 1080;
+  const height = 1440;
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#f2f4f7";
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#d9e0e8";
+  ctx.lineWidth = 3;
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(80, 80, width - 160, height - 160, 28);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.fillRect(80, 80, width - 160, height - 160);
+    ctx.strokeRect(80, 80, width - 160, height - 160);
+  }
+  ctx.fillStyle = "#3f5872";
+  ctx.font = "700 56px sans-serif";
+  ctx.fillText("OvO", 130, 170);
+  ctx.fillStyle = "#24303d";
+  ctx.font = "36px sans-serif";
+  wrapCanvasText(ctx, text, 130, 250, width - 260, 58);
+  ctx.fillStyle = "#6f7b89";
+  ctx.font = "26px sans-serif";
+  ctx.fillText("由 OvO 匿名信箱生成", 130, height - 130);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  const file = new File([blob], `ovo-letter-${Date.now()}.png`, { type: "image/png" });
+  if (navigator.canShare?.({ files: [file] })) {
+    await navigator.share({ files: [file], title: "OvO 匿名信箱" });
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = file.name;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
 function bindOwnerActions(scope) {
+  scope.querySelectorAll("[data-action='toggle-tools']").forEach((button) => {
+    button.addEventListener("click", () => {
+      const tools = button.closest("[data-letter-id]")?.querySelector(".owner-tools");
+      if (tools) tools.hidden = !tools.hidden;
+    });
+  });
   scope.querySelectorAll("[data-action='reply']").forEach((button) => {
     button.addEventListener("click", async () => {
       const card = button.closest("[data-letter-id]");
@@ -925,6 +1057,14 @@ function bindOwnerActions(scope) {
     button.addEventListener("click", async () => {
       const card = button.closest("[data-letter-id]");
       const message = card.querySelector("[data-message]");
+      const canArchive = await confirmArchive();
+      if (!canArchive) {
+        if (message) {
+          message.className = "subtle";
+          message.textContent = "已取消归档。";
+        }
+        return;
+      }
       message.textContent = "正在归档...";
       try {
         await api(`/api/owner/letters/${encodeURIComponent(card.dataset.letterId)}/archive`, {
@@ -935,6 +1075,24 @@ function bindOwnerActions(scope) {
       } catch (err) {
         message.className = "error";
         message.textContent = err.message;
+      }
+    });
+  });
+  scope.querySelectorAll("[data-action='image']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const card = button.closest("[data-letter-id]");
+      const letter = card.querySelector(".letter-body")?.textContent || "";
+      const reply = card.querySelector("[data-reply]")?.value || card.querySelector(".reply-body")?.textContent?.replace(/^我的回信：/, "") || "";
+      const text = await confirmImageText(`来信：\n${letter}\n\n回信：\n${reply}`);
+      if (!text) return;
+      try {
+        await generateLetterImage(text);
+      } catch (err) {
+        const message = card.querySelector("[data-message]");
+        if (message) {
+          message.className = "error";
+          message.textContent = err.message || "生成图片失败";
+        }
       }
     });
   });

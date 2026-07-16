@@ -692,6 +692,12 @@ textarea {
   gap: 8px;
 }
 
+.owner-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .owner-tools textarea {
   min-height: 90px;
 }
@@ -723,6 +729,12 @@ textarea {
 .confirm-dialog p {
   margin: 0 0 18px;
   color: var(--muted);
+}
+
+.image-dialog textarea {
+  width: 100%;
+  min-height: 260px;
+  margin-bottom: 14px;
 }
 
 .confirm-actions {
