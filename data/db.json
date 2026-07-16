@@ -53,5 +53,14 @@
     }
   ],
   "squareLikes": [],
-  "squareComments": []
+  "squareComments": [
+    {
+      "id": "6feca800-6889-4879-b2d6-3d893a06044c",
+      "postId": "a2da5275-07b4-4d50-b9bc-e453714c05c8",
+      "authorMode": "named",
+      "authorName": "w",
+      "body": "小ww你很牛逼克拉斯哟",
+      "createdAt": "2026-07-16T07:04:12.836Z"
+    }
+  ]
 }
