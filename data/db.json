@@ -52,6 +52,17 @@
       "createdAt": "2026-07-16T06:58:02.011Z",
       "repliedAt": "2026-07-16T07:28:05.386Z",
       "archivedAt": "2026-07-16T07:05:50.257Z"
+    },
+    {
+      "id": "9819d20b-c52d-4ac7-b5c8-033828a7b5cd",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "哇塞，小w动手能力这么强，直接自己造了一个",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-16T08:19:00.708Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
