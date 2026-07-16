@@ -107,6 +107,17 @@
       "createdAt": "2026-07-16T13:18:29.616Z",
       "repliedAt": "2026-07-16T14:53:26.626Z",
       "archivedAt": null
+    },
+    {
+      "id": "e60be9b2-b17d-4417-b726-3e4f3fb986b6",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "小w你好牛！之前做的网站也很厉害！你说话也超级有趣的！！！",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-16T15:01:57.176Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
