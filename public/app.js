@@ -355,10 +355,10 @@ async function renderSquarePost(id) {
         <form class="form" id="comment-form">
           <div class="segmented">
             <label><input type="radio" name="authorMode" value="anonymous" checked /> 匿名</label>
-            <label><input type="radio" name="authorMode" value="named" /> 随意 ID</label>
+            <label><input type="radio" name="authorMode" value="named" /> 编辑昵称</label>
           </div>
-          <label>随意 ID
-            <input name="authorName" placeholder="选择随意 ID 时填写" maxlength="24" />
+          <label>编辑昵称
+            <input name="authorName" placeholder="选择编辑昵称时填写" maxlength="24" />
           </label>
           <label>评论内容
             <textarea name="body" maxlength="400" placeholder="写一条评论" required></textarea>
@@ -818,7 +818,7 @@ function sentLetterCard(letter) {
         <span>${formatTime(letter.createdAt)}</span>
       </div>
       <p class="letter-body">${escapeHtml(letter.body)}</p>
-      ${letter.reply ? `<p class="reply-body"><strong>TA 的回复：</strong>${escapeHtml(letter.reply)}</p>` : `<p class="subtle">对方还没有公开回复。</p>`}
+      ${letter.reply ? `<p class="reply-body"><strong>TA 的回复：</strong>${escapeHtml(letter.reply)}</p>` : `<p class="subtle">对方还没有回复。</p>`}
     </article>
   `;
 }
@@ -894,18 +894,18 @@ function ownerLetterCard(letter) {
       ${letter.reply ? `<p class="reply-body"><strong>我的回信：</strong>${escapeHtml(letter.reply)}</p>` : ""}
       ${needsChoice ? `
           <div class="owner-choice-row">
-            <button class="link-button inline" type="button" data-action="toggle-tools">重新选择是否公开？</button>
+            <button class="link-button inline" type="button" data-action="toggle-tools">${isArchived ? "选择是否重新公开？" : "重新选择是否公开？"}</button>
             ${letter.reply ? `<button class="link-button inline" type="button" data-action="image">生成图片</button>` : ""}
           </div>
         ` : ""}
         <div class="owner-tools" ${needsChoice ? "hidden" : ""}>
           <textarea data-reply placeholder="写一封公开回信">${escapeHtml(letter.reply || "")}</textarea>
           <div class="actions" style="justify-content:flex-start;margin-top:0">
-            <button class="btn" data-action="reply">${isPublished ? "继续公开" : "公开回复"}</button>
-            <button class="btn danger" data-action="archive">${isArchived ? "保持不公开" : "归档"}</button>
+            <button class="btn" data-action="reply">${isArchived ? "重新公开" : "公开回复"}</button>
+            <button class="btn danger" data-action="archive">${isPublished ? "改为不公开" : "归档为不公开"}</button>
             ${!isPublished && letter.reply ? `<button class="btn secondary" data-action="image">生成图片</button>` : ""}
           </div>
-          <p class="subtle">归档表示这封信只保留在你的收信管理里，不会出现在公开页面。</p>
+          <p class="subtle">归档为不公开表示：收信人和登录状态的寄信人可以看到这封回复，但不会出现在公开页面。</p>
           <p class="subtle" data-message></p>
         </div>
     </article>
