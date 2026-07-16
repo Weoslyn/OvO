@@ -734,7 +734,10 @@ async function loadOwnerLetters() {
           <span class="subtle">这个信箱已绑定到当前设备。点击圆形头像可从相册或文件中选择图片。</span>
           <p class="subtle" data-avatar-message></p>
         </div>
-        <button class="btn secondary" data-nav="/u/${escapeHtml(result.inbox.handle)}">打开公开页</button>
+        <div class="owner-profile-actions">
+          <button class="link-button inline" type="button" data-action="show-links">找不到展示链接了？点击此处寻找</button>
+          <button class="btn secondary" data-nav="/u/${escapeHtml(result.inbox.handle)}">打开公开页</button>
+        </div>
       </div>
       ${ownerStatsHtml(result.stats)}
       ${result.letters.length ? result.letters.map(ownerLetterCard).join("") : `<p class="empty">还没有来信。</p>`}
@@ -746,9 +749,45 @@ async function loadOwnerLetters() {
     bindNav(mount);
     bindAvatarPicker(mount, result.inbox);
     bindOwnerActions(mount);
+    bindOwnerLinkTools(mount, result.inbox);
   } catch (err) {
     mount.innerHTML = `<p class="empty error">${escapeHtml(err.message)}</p>`;
   }
+}
+
+function bindOwnerLinkTools(scope, inbox) {
+  scope.querySelector("[data-action='show-links']")?.addEventListener("click", () => {
+    showOwnerLinks(inbox);
+  });
+}
+
+function showOwnerLinks(inbox) {
+  const displayPath = `/u/${encodeURIComponent(inbox.handle)}`;
+  const managePath = `/inbox?handle=${encodeURIComponent(inbox.handle)}&key=${encodeURIComponent(state.owner.key)}`;
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-dialog link-dialog" role="dialog" aria-modal="true">
+      <button class="dialog-close" type="button" aria-label="关闭" data-close-links>×</button>
+      <h3>信箱链接</h3>
+      <div class="created-links">
+        <button class="created-link-card" type="button" data-nav="${escapeHtml(displayPath)}">
+          <strong>展示链接</strong>
+          <code>${escapeHtml(absoluteUrl(displayPath))}</code>
+        </button>
+        <button class="created-link-card" type="button" data-nav="${escapeHtml(managePath)}">
+          <strong>收信链接</strong>
+          <code>${escapeHtml(absoluteUrl(managePath))}</code>
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.append(overlay);
+  overlay.querySelector("[data-close-links]").addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) overlay.remove();
+  });
+  bindNav(overlay);
 }
 
 function ownerStatsHtml(stats = {}) {
@@ -844,7 +883,7 @@ function fileToDataUrl(file) {
 function ownerLetterCard(letter) {
   const isArchived = letter.status === "archived";
   const isPublished = letter.status === "replied";
-  const canReply = !isArchived;
+  const needsChoice = isPublished || isArchived;
   return `
     <article class="card letter" data-letter-id="${escapeHtml(letter.id)}">
       <div class="letter-meta">
@@ -853,24 +892,22 @@ function ownerLetterCard(letter) {
       </div>
       <p class="letter-body">${escapeHtml(letter.body)}</p>
       ${letter.reply ? `<p class="reply-body"><strong>我的回信：</strong>${escapeHtml(letter.reply)}</p>` : ""}
-      ${canReply ? `
-        ${isPublished ? `
+      ${needsChoice ? `
           <div class="owner-choice-row">
             <button class="link-button inline" type="button" data-action="toggle-tools">重新选择是否公开？</button>
-            <button class="link-button inline" type="button" data-action="image">生成图片</button>
+            ${letter.reply ? `<button class="link-button inline" type="button" data-action="image">生成图片</button>` : ""}
           </div>
         ` : ""}
-        <div class="owner-tools" ${isPublished ? "hidden" : ""}>
+        <div class="owner-tools" ${needsChoice ? "hidden" : ""}>
           <textarea data-reply placeholder="写一封公开回信">${escapeHtml(letter.reply || "")}</textarea>
           <div class="actions" style="justify-content:flex-start;margin-top:0">
-            <button class="btn" data-action="reply">${isPublished ? "继续公开" : "公开回信"}</button>
-            <button class="btn danger" data-action="archive">归档</button>
-            ${!isPublished ? `<button class="btn secondary" data-action="image">生成图片</button>` : ""}
+            <button class="btn" data-action="reply">${isPublished ? "继续公开" : "公开回复"}</button>
+            <button class="btn danger" data-action="archive">${isArchived ? "保持不公开" : "归档"}</button>
+            ${!isPublished && letter.reply ? `<button class="btn secondary" data-action="image">生成图片</button>` : ""}
           </div>
           <p class="subtle">归档表示这封信只保留在你的收信管理里，不会出现在公开页面。</p>
           <p class="subtle" data-message></p>
         </div>
-      ` : `<p class="subtle">已归档：仅保留在收信管理里，不会公开展示。</p>`}
     </article>
   `;
 }

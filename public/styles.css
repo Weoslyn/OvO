@@ -644,6 +644,30 @@ textarea {
   margin: 0;
 }
 
+.owner-profile-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.link-dialog {
+  position: relative;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+}
+
 .auth-disclosure {
   margin-top: 18px;
 }
@@ -779,8 +803,13 @@ textarea {
     grid-template-columns: auto 1fr;
   }
 
-  .owner-profile .btn {
+  .owner-profile-actions {
     grid-column: 1 / -1;
+    justify-self: start;
+    justify-items: start;
+  }
+
+  .owner-profile .btn {
     justify-self: start;
   }
 }
