@@ -251,6 +251,45 @@ body.intro-running .shell {
   gap: 14px;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-header h2,
+.square-composer h2,
+.sent-panel h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.sort-control,
+.segmented {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+}
+
+.sort-control button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.sort-control button.active {
+  background: var(--paper);
+  color: var(--accent-strong);
+}
+
 .card {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -347,6 +386,86 @@ textarea {
 .letter {
   display: grid;
   gap: 12px;
+}
+
+.square-post {
+  display: grid;
+  gap: 12px;
+}
+
+.post-main {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+  text-align: left;
+}
+
+.post-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.post-author strong,
+.post-author small {
+  display: block;
+}
+
+.post-author small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.post-avatar {
+  width: 42px;
+  height: 42px;
+  font-size: 16px;
+}
+
+.post-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.like-button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--accent-strong);
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.like-button.liked {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.comment-card {
+  display: grid;
+  gap: 8px;
+}
+
+.segmented {
+  justify-content: flex-start;
+  border-radius: 8px;
+}
+
+.segmented label {
+  display: inline-flex;
+  align-items: center;
+  grid-template-columns: none;
+  gap: 6px;
+  color: var(--ink);
+}
+
+.segmented input {
+  width: auto;
 }
 
 .letter-body,
@@ -525,6 +644,49 @@ textarea {
   margin: 0;
 }
 
+.auth-disclosure {
+  margin-top: 18px;
+}
+
+.auth-disclosure summary {
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.auth-disclosure .form {
+  margin-top: 14px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  padding: 12px;
+}
+
+.stat-card strong,
+.stat-card span {
+  display: block;
+}
+
+.stat-card strong {
+  color: var(--accent-strong);
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.stat-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .owner-tools {
   display: grid;
   gap: 8px;
@@ -589,6 +751,16 @@ textarea {
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .section-header,
+  .post-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .owner-profile {

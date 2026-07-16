@@ -6,6 +6,7 @@ const state = {
     handle: new URLSearchParams(location.search).get("handle") || localStorage.getItem("letter_owner_handle") || "demo",
     key: new URLSearchParams(location.search).get("key") || localStorage.getItem("letter_owner_key") || ""
   },
+  squareSort: new URLSearchParams(location.search).get("sort") === "hot" ? "hot" : "new",
   introPlayed: false
 };
 
@@ -21,6 +22,7 @@ function parseRoute() {
   if (path === "/inbox/new") return { name: "new" };
   if (path === "/inbox/recover") return { name: "recover" };
   if (path === "/inbox") return { name: "owner" };
+  if (path.startsWith("/square/")) return { name: "squarePost", id: decodeURIComponent(path.slice(8).split("/")[0]) };
   if (path.startsWith("/u/")) return { name: "profile", handle: decodeURIComponent(path.slice(3).split("/")[0]) };
   return { name: "home" };
 }
@@ -57,6 +59,19 @@ function escapeHtml(value) {
 
 function absoluteUrl(path) {
   return `${location.origin}${path}`;
+}
+
+function getVoterId() {
+  try {
+    let id = localStorage.getItem("ovo_square_voter");
+    if (!id) {
+      id = `voter_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+      localStorage.setItem("ovo_square_voter", id);
+    }
+    return id;
+  } catch {
+    return `voter_${Date.now().toString(36)}`;
+  }
 }
 
 function formatTime(iso) {
@@ -97,7 +112,7 @@ function layout(content) {
       <header class="topbar">
         <button class="brand" data-nav="/">O<span>v</span>O</button>
         <nav class="nav">
-          <button data-nav="/">主页</button>
+          <button data-nav="/">广场</button>
           <button data-nav="/inbox/new">创建信箱</button>
           <button data-nav="/inbox">收信管理</button>
           <div class="mode-menu">
@@ -173,31 +188,233 @@ function render() {
   if (state.route.name === "new") renderNewInbox();
   else if (state.route.name === "recover") renderRecover();
   else if (state.route.name === "owner") renderOwner();
+  else if (state.route.name === "squarePost") renderSquarePost(state.route.id);
   else if (state.route.name === "profile") renderProfile(state.route.handle);
   else renderHome();
 }
 
-function renderHome() {
+async function renderHome() {
   renderWithIntro(`
     <section class="hero">
-      <h1>匿名写一句，认真回一封。</h1>
-      <p>一个轻量的匿名来信箱。先把产品流程跑通，视觉细节可以按你的方向慢慢调。</p>
+      <h1>OvO的广场</h1>
+      <p>OvO广场，让我们畅所欲言！</p>
       <div class="actions">
-        <button class="btn" data-nav="/inbox/new">创建我的信箱</button>
+        <button class="btn" type="button" data-compose-square>发一条广场帖子</button>
       </div>
     </section>
-    <section class="grid">
-      <article class="card">
-        <h3>公开收信页</h3>
-        <p class="subtle">每个用户都有自己的专属链接，比如 /u/ovo。别人点进去就是给这个人投匿名信的页面。</p>
-      </article>
-      <article class="card">
-        <h3>收信管理页</h3>
-        <p class="subtle">这是给信箱主人用的页面：查看别人写来的匿名信、公开回信，或者把不想处理的来信归档。</p>
-      </article>
+    <section class="panel square-composer" hidden>
+      <h2>发一条广场帖子</h2>
+      <p class="subtle">提醒：帖子会以你匿名信箱的昵称展示。</p>
+      <form class="form" id="square-post-form">
+        <label>帖子内容
+          <textarea name="body" maxlength="600" placeholder="写点想说的话" required></textarea>
+        </label>
+        <button class="btn" type="submit">发布到广场</button>
+        <p id="square-post-message" class="subtle"></p>
+      </form>
+    </section>
+    <section class="stack square-feed" style="margin-top:18px">
+      <div class="section-header">
+        <h2>广场帖子</h2>
+        <div class="sort-control" aria-label="排序">
+          <button class="${state.squareSort === "hot" ? "active" : ""}" type="button" data-sort-square="hot">最热</button>
+          <button class="${state.squareSort === "new" ? "active" : ""}" type="button" data-sort-square="new">最新</button>
+        </div>
+      </div>
+      <div id="square-list"><p class="empty">正在读取广场...</p></div>
     </section>
   `);
   bindNav();
+  bindSquareHome();
+  await loadSquarePosts();
+}
+
+function bindSquareHome() {
+  app.querySelector("[data-compose-square]")?.addEventListener("click", () => {
+    const composer = app.querySelector(".square-composer");
+    if (!state.owner.handle || !state.owner.key) {
+      composer.hidden = false;
+      const message = app.querySelector("#square-post-message");
+      message.className = "error";
+      message.innerHTML = `发广场帖子前需要先拥有一个信箱。<button class="link-button inline" type="button" data-nav="/inbox/new">去创建或找回</button>`;
+      bindNav(message);
+      return;
+    }
+    composer.hidden = !composer.hidden;
+    if (!composer.hidden) composer.querySelector("textarea")?.focus();
+  });
+  app.querySelectorAll("[data-sort-square]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      state.squareSort = button.dataset.sortSquare;
+      app.querySelectorAll("[data-sort-square]").forEach((item) => item.classList.toggle("active", item === button));
+      await loadSquarePosts();
+    });
+  });
+  app.querySelector("#square-post-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const message = app.querySelector("#square-post-message");
+    message.className = "subtle";
+    message.textContent = "正在发布...";
+    try {
+      await api("/api/square/posts", {
+        method: "POST",
+        ownerKey: state.owner.key,
+        body: {
+          handle: state.owner.handle,
+          body: new FormData(formElement).get("body")
+        }
+      });
+      formElement.reset();
+      message.className = "success";
+      message.textContent = "已经发布到广场。";
+      app.querySelector(".square-composer").hidden = true;
+      await loadSquarePosts();
+    } catch (err) {
+      message.className = "error";
+      message.textContent = err.message;
+    }
+  });
+}
+
+async function loadSquarePosts() {
+  const mount = app.querySelector("#square-list");
+  if (!mount) return;
+  mount.innerHTML = `<p class="empty">正在读取广场...</p>`;
+  try {
+    const { posts } = await api(`/api/square/posts?sort=${encodeURIComponent(state.squareSort)}`);
+    mount.innerHTML = posts.length ? posts.map(squarePostCard).join("") : `<p class="empty">广场还没有帖子。</p>`;
+    bindNav(mount);
+    bindSquarePostActions(mount);
+  } catch (err) {
+    mount.innerHTML = `<p class="empty error">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function squarePostCard(post) {
+  return `
+    <article class="card square-post" data-post-id="${escapeHtml(post.id)}">
+      <button class="post-main" type="button" data-nav="/square/${escapeHtml(post.id)}">
+        <span class="post-author">
+          ${avatarHtml(post.author, "post-avatar")}
+          <span>
+            <strong>${escapeHtml(post.author.penName)}</strong>
+            <small>@${escapeHtml(post.author.handle || "square")}</small>
+          </span>
+        </span>
+        <p class="letter-body">${escapeHtml(post.body)}</p>
+      </button>
+      <div class="post-footer">
+        <span class="subtle">${formatTime(post.createdAt)} · ${post.commentCount} 条评论</span>
+        <button class="like-button" type="button" data-like-post>赞 <span>${escapeHtml(post.likeCount)}</span></button>
+      </div>
+    </article>
+  `;
+}
+
+function bindSquarePostActions(scope) {
+  scope.querySelectorAll("[data-like-post]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const card = button.closest("[data-post-id]");
+      try {
+        const result = await api(`/api/square/posts/${encodeURIComponent(card.dataset.postId)}/like`, {
+          method: "POST",
+          body: { voterId: getVoterId() }
+        });
+        button.querySelector("span").textContent = result.likeCount;
+        button.classList.add("liked");
+      } catch (err) {
+        button.textContent = err.message;
+      }
+    });
+  });
+}
+
+async function renderSquarePost(id) {
+  app.innerHTML = layout(`<p class="empty">正在读取帖子...</p>`);
+  bindNav();
+  try {
+    const { post, comments } = await api(`/api/square/posts/${encodeURIComponent(id)}`);
+    renderWithIntro(`
+      <section class="panel square-detail" data-post-id="${escapeHtml(post.id)}">
+        <span class="post-author">
+          ${avatarHtml(post.author, "post-avatar")}
+          <span>
+            <strong>${escapeHtml(post.author.penName)}</strong>
+            <small>@${escapeHtml(post.author.handle || "square")}</small>
+          </span>
+        </span>
+        <p class="letter-body">${escapeHtml(post.body)}</p>
+        <div class="post-footer">
+          <span class="subtle">${formatTime(post.createdAt)} · ${post.commentCount} 条评论</span>
+          <button class="like-button" type="button" data-like-post>赞 <span>${escapeHtml(post.likeCount)}</span></button>
+        </div>
+      </section>
+      <section class="panel" style="margin-top:18px">
+        <h2>评论</h2>
+        <form class="form" id="comment-form">
+          <div class="segmented">
+            <label><input type="radio" name="authorMode" value="anonymous" checked /> 匿名</label>
+            <label><input type="radio" name="authorMode" value="named" /> 随意 ID</label>
+          </div>
+          <label>随意 ID
+            <input name="authorName" placeholder="选择随意 ID 时填写" maxlength="24" />
+          </label>
+          <label>评论内容
+            <textarea name="body" maxlength="400" placeholder="写一条评论" required></textarea>
+          </label>
+          <button class="btn" type="submit">发表评论</button>
+          <p id="comment-message" class="subtle"></p>
+        </form>
+      </section>
+      <section class="stack" style="margin-top:18px" id="comment-list">
+        ${comments.length ? comments.map(commentCard).join("") : `<p class="empty">还没有评论。</p>`}
+      </section>
+      <div class="actions">
+        <button class="btn secondary" type="button" data-nav="/u/${escapeHtml(post.author.handle)}">给TA私信</button>
+      </div>
+    `);
+    bindNav();
+    bindSquarePostActions(app);
+    app.querySelector("#comment-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formElement = event.currentTarget;
+      const form = new FormData(formElement);
+      const message = app.querySelector("#comment-message");
+      message.className = "subtle";
+      message.textContent = "正在发布评论...";
+      try {
+        await api(`/api/square/posts/${encodeURIComponent(id)}/comments`, {
+          method: "POST",
+          body: {
+            authorMode: form.get("authorMode"),
+            authorName: form.get("authorName"),
+            body: form.get("body")
+          }
+        });
+        formElement.reset();
+        await renderSquarePost(id);
+      } catch (err) {
+        message.className = "error";
+        message.textContent = err.message;
+      }
+    });
+  } catch (err) {
+    renderWithIntro(`<section class="panel"><p class="empty error">${escapeHtml(err.message)}</p></section>`);
+    bindNav();
+  }
+}
+
+function commentCard(comment) {
+  return `
+    <article class="card comment-card">
+      <div class="letter-meta">
+        <strong>${escapeHtml(comment.authorName)}</strong>
+        <span>${formatTime(comment.createdAt)}</span>
+      </div>
+      <p class="letter-body">${escapeHtml(comment.body)}</p>
+    </article>
+  `;
 }
 
 function renderNewInbox() {
@@ -412,7 +629,11 @@ async function renderProfile(handle) {
       message.className = "subtle";
       message.textContent = "正在寄出...";
       try {
-        await api(`/api/inboxes/${encodeURIComponent(handle)}/letters`, { method: "POST", body: { body } });
+        await api(`/api/inboxes/${encodeURIComponent(handle)}/letters`, {
+          method: "POST",
+          ownerKey: state.owner.key,
+          body: { body }
+        });
         formElement.reset();
         message.className = "success";
         message.textContent = "已经匿名寄出。";
@@ -454,27 +675,29 @@ function replyCard(letter) {
 
 async function renderOwner() {
   const params = new URLSearchParams(location.search);
+  const enteredByReceiveLink = Boolean(params.get("handle") && params.get("key"));
   if (params.get("handle")) state.owner.handle = params.get("handle");
   if (params.get("key")) state.owner.key = params.get("key");
   if (state.owner.handle) localStorage.setItem("letter_owner_handle", state.owner.handle);
   if (state.owner.key) localStorage.setItem("letter_owner_key", state.owner.key);
+  const isLoggedIn = Boolean(state.owner.handle && state.owner.key);
 
   renderWithIntro(`
-    <section class="panel">
-      <h1 class="page-title">收信管理</h1>
-      <p class="subtle">这里是信箱主人使用的管理页。别人匿名写来的内容会先进入这里，只有你选择“公开回信”后，来信和回信才会出现在公开页。</p>
+    <section id="owner-list" class="stack" style="margin-top:18px"></section>
+    <details class="panel auth-disclosure" ${isLoggedIn ? "" : "open"}>
+      <summary>${isLoggedIn ? "管理密钥" : "已有信箱？点击此处找回"}</summary>
+      <p class="subtle">输入链接名和管理密钥后可以读取来信。接收链接会自动带上这些信息。</p>
       <form class="form" id="owner-auth">
         <label>链接名
-          <input name="handle" value="${escapeHtml(state.owner.handle)}" />
+          <input name="handle" value="${escapeHtml(state.owner.handle === "demo" && !isLoggedIn ? "" : state.owner.handle)}" />
         </label>
         <label>管理密钥
           <input name="key" value="${escapeHtml(state.owner.key)}" />
         </label>
         <button class="btn" type="submit">读取来信</button>
-        <button class="link-button inline" type="button" data-nav="/inbox/recover">忘记管理密钥？用邮箱找回</button>
+        <button class="link-button inline" type="button" data-nav="/inbox/recover">忘记管理密钥？去找回</button>
       </form>
-    </section>
-    <section id="owner-list" class="stack" style="margin-top:18px"></section>
+    </details>
   `);
   bindNav();
   app.querySelector("#owner-auth").addEventListener("submit", (event) => {
@@ -486,7 +709,8 @@ async function renderOwner() {
     localStorage.setItem("letter_owner_key", state.owner.key);
     loadOwnerLetters();
   });
-  if (state.owner.key) loadOwnerLetters();
+  if (isLoggedIn) loadOwnerLetters({ direct: enteredByReceiveLink });
+  else app.querySelector("#owner-list").innerHTML = "";
 }
 
 async function loadOwnerLetters() {
@@ -494,6 +718,9 @@ async function loadOwnerLetters() {
   mount.innerHTML = `<p class="empty">正在读取...</p>`;
   try {
     const result = await api(`/api/owner/inboxes/${encodeURIComponent(state.owner.handle)}/letters`, {
+      ownerKey: state.owner.key
+    });
+    const sent = await api(`/api/owner/inboxes/${encodeURIComponent(state.owner.handle)}/sent`, {
       ownerKey: state.owner.key
     });
     mount.innerHTML = `
@@ -508,7 +735,12 @@ async function loadOwnerLetters() {
         </div>
         <button class="btn secondary" data-nav="/u/${escapeHtml(result.inbox.handle)}">打开公开页</button>
       </div>
+      ${ownerStatsHtml(result.stats)}
       ${result.letters.length ? result.letters.map(ownerLetterCard).join("") : `<p class="empty">还没有来信。</p>`}
+      <section class="panel sent-panel">
+        <h2>已寄出的邮件</h2>
+        ${sent.letters.length ? sent.letters.map(sentLetterCard).join("") : `<p class="empty">登录状态下给别人写信后，会显示在这里。</p>`}
+      </section>
     `;
     bindNav(mount);
     bindAvatarPicker(mount, result.inbox);
@@ -516,6 +748,39 @@ async function loadOwnerLetters() {
   } catch (err) {
     mount.innerHTML = `<p class="empty error">${escapeHtml(err.message)}</p>`;
   }
+}
+
+function ownerStatsHtml(stats = {}) {
+  const items = [
+    ["已收到来信", stats.received || 0],
+    ["已公开来信", stats.publicReplies || 0],
+    ["待回复信件", stats.pendingReplies || 0],
+    ["未公开来信", stats.privateReplies || 0]
+  ];
+  return `
+    <div class="stats-grid">
+      ${items.map(([label, value]) => `
+        <article class="stat-card">
+          <strong>${escapeHtml(value)}</strong>
+          <span>${escapeHtml(label)}</span>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function sentLetterCard(letter) {
+  const target = letter.target || { penName: "未知信箱", handle: "" };
+  return `
+    <article class="card letter">
+      <div class="letter-meta">
+        <span>寄给 ${escapeHtml(target.penName)} ${target.handle ? `@${escapeHtml(target.handle)}` : ""}</span>
+        <span>${formatTime(letter.createdAt)}</span>
+      </div>
+      <p class="letter-body">${escapeHtml(letter.body)}</p>
+      ${letter.reply ? `<p class="reply-body"><strong>TA 的回复：</strong>${escapeHtml(letter.reply)}</p>` : `<p class="subtle">对方还没有公开回复。</p>`}
+    </article>
+  `;
 }
 
 function bindAvatarPicker(scope, inbox) {
