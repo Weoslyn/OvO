@@ -31,6 +31,17 @@
       "createdAt": "2026-07-08T04:56:32.499Z",
       "repliedAt": "2026-07-08T04:56:48.878Z",
       "archivedAt": null
+    },
+    {
+      "id": "915e9a1e-1641-4983-8629-79abf303d2bb",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "body": "哦哈哟 A血馒头好吃吗",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-16T06:58:02.011Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
