@@ -55,6 +55,10 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function absoluteUrl(path) {
+  return `${location.origin}${path}`;
+}
+
 function formatTime(iso) {
   return new Date(iso).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
@@ -242,8 +246,25 @@ function renderNewInbox() {
       localStorage.setItem("letter_owner_key", result.ownerKey);
       state.owner.handle = result.inbox.handle;
       state.owner.key = result.ownerKey;
+      const displayPath = `/u/${encodeURIComponent(result.inbox.handle)}`;
+      const managePath = result.manageUrl;
       message.className = "success";
-      message.innerHTML = `创建成功。专属投信链接：<button class="link-button" type="button" data-nav="/u/${escapeHtml(result.inbox.handle)}">/u/${escapeHtml(result.inbox.handle)}</button><br />管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code><br /><span class="subtle">别人点这个链接就是给你投匿名信。请保存管理密钥，可用于进入收信管理和找回信箱。</span>`;
+      message.innerHTML = `
+        <span class="created-title">创建成功</span>
+        <span class="created-links">
+          <button class="created-link-card" type="button" data-nav="${escapeHtml(displayPath)}">
+            <strong>展示链接</strong>
+            <code>${escapeHtml(absoluteUrl(displayPath))}</code>
+            <small>这个链接是用来展示的，他人点击此链接即可给你发送匿名信息</small>
+          </button>
+          <button class="created-link-card" type="button" data-nav="${escapeHtml(managePath)}">
+            <strong>接收链接</strong>
+            <code>${escapeHtml(absoluteUrl(managePath))}</code>
+            <small>这个链接是你自己的收信页面，请妥善保存</small>
+          </button>
+        </span>
+        <span class="subtle">管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code></span>
+      `;
       bindNav(message);
     } catch (err) {
       message.className = "error";

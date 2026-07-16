@@ -381,6 +381,62 @@ textarea {
   color: var(--success);
 }
 
+.created-title,
+.created-links {
+  display: block;
+}
+
+.created-title {
+  margin-bottom: 10px;
+  font-weight: 800;
+  color: var(--success);
+}
+
+.created-links {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.created-link-card {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  padding: 12px;
+  text-align: left;
+}
+
+.created-link-card:hover {
+  border-color: var(--accent);
+}
+
+.created-link-card strong,
+.created-link-card code,
+.created-link-card small {
+  display: block;
+}
+
+.created-link-card strong {
+  color: var(--accent-strong);
+  font-size: 15px;
+}
+
+.created-link-card code {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.created-link-card small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .key-code {
   display: inline-block;
   margin-top: 6px;
