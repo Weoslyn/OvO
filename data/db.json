@@ -52,7 +52,14 @@
       "createdAt": "2026-07-16T06:56:30.805Z"
     }
   ],
-  "squareLikes": [],
+  "squareLikes": [
+    {
+      "id": "b0df374c-09a8-4eea-bcb9-78377a0114fb",
+      "postId": "a2da5275-07b4-4d50-b9bc-e453714c05c8",
+      "voterId": "voter_s4k2nw6b13_mrn688vk",
+      "createdAt": "2026-07-16T07:11:58.235Z"
+    }
+  ],
   "squareComments": [
     {
       "id": "6feca800-6889-4879-b2d6-3d893a06044c",
