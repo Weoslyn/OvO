@@ -118,6 +118,17 @@
       "createdAt": "2026-07-16T15:01:57.176Z",
       "repliedAt": "2026-07-16T15:10:20.139Z",
       "archivedAt": null
+    },
+    {
+      "id": "a124e527-9ef8-45e4-886d-54737e3b9d35",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "神了",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-16T15:45:17.468Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
