@@ -451,6 +451,17 @@ textarea {
   gap: 8px;
 }
 
+.comment-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.comment-bar input {
+  min-width: 0;
+}
+
 .segmented {
   justify-content: flex-start;
   border-radius: 8px;
@@ -797,6 +808,10 @@ textarea {
 
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comment-bar {
+    grid-template-columns: 1fr;
   }
 
   .owner-profile {

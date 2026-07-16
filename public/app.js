@@ -352,20 +352,11 @@ async function renderSquarePost(id) {
       </section>
       <section class="panel" style="margin-top:18px">
         <h2>评论</h2>
-        <form class="form" id="comment-form">
-          <div class="segmented">
-            <label><input type="radio" name="authorMode" value="anonymous" checked /> 匿名</label>
-            <label><input type="radio" name="authorMode" value="named" /> 编辑昵称</label>
-          </div>
-          <label>编辑昵称
-            <input name="authorName" placeholder="选择编辑昵称时填写" maxlength="24" />
-          </label>
-          <label>评论内容
-            <textarea name="body" maxlength="400" placeholder="写一条评论" required></textarea>
-          </label>
+        <form class="comment-bar" id="comment-form">
+          <input name="body" maxlength="400" placeholder="写一条评论" required />
           <button class="btn" type="submit">发表评论</button>
-          <p id="comment-message" class="subtle"></p>
         </form>
+        <p id="comment-message" class="subtle"></p>
       </section>
       <section class="stack" style="margin-top:18px" id="comment-list">
         ${comments.length ? comments.map(commentCard).join("") : `<p class="empty">还没有评论。</p>`}
@@ -381,15 +372,19 @@ async function renderSquarePost(id) {
       const formElement = event.currentTarget;
       const form = new FormData(formElement);
       const message = app.querySelector("#comment-message");
+      const body = String(form.get("body") || "").trim();
+      if (!body) return;
+      const identity = await chooseCommentIdentity();
+      if (!identity) return;
       message.className = "subtle";
       message.textContent = "正在发布评论...";
       try {
         await api(`/api/square/posts/${encodeURIComponent(id)}/comments`, {
           method: "POST",
           body: {
-            authorMode: form.get("authorMode"),
-            authorName: form.get("authorName"),
-            body: form.get("body")
+            authorMode: identity.authorMode,
+            authorName: identity.authorName,
+            body
           }
         });
         formElement.reset();
@@ -415,6 +410,45 @@ function commentCard(comment) {
       <p class="letter-body">${escapeHtml(comment.body)}</p>
     </article>
   `;
+}
+
+function chooseCommentIdentity() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "confirm-overlay";
+    overlay.innerHTML = `
+      <div class="confirm-dialog" role="dialog" aria-modal="true">
+        <h3>选择评论身份</h3>
+        <div class="segmented comment-identity">
+          <label><input type="radio" name="commentIdentity" value="anonymous" checked /> 匿名</label>
+          <label><input type="radio" name="commentIdentity" value="named" /> 编辑昵称</label>
+        </div>
+        <label style="margin:12px 0">编辑昵称
+          <input name="commentNickname" placeholder="选择编辑昵称时填写" maxlength="24" />
+        </label>
+        <div class="confirm-actions">
+          <button class="btn" type="button" data-confirm-comment>发布</button>
+          <button class="btn secondary" type="button" data-cancel-comment>取消</button>
+        </div>
+        <p class="error" data-comment-identity-message></p>
+      </div>
+    `;
+    document.body.append(overlay);
+    const finish = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+    overlay.querySelector("[data-confirm-comment]").addEventListener("click", () => {
+      const authorMode = overlay.querySelector("[name='commentIdentity']:checked")?.value === "named" ? "named" : "anonymous";
+      const authorName = overlay.querySelector("[name='commentNickname']").value.trim();
+      if (authorMode === "named" && !authorName) {
+        overlay.querySelector("[data-comment-identity-message]").textContent = "请填写编辑昵称，或者选择匿名。";
+        return;
+      }
+      finish({ authorMode, authorName });
+    });
+    overlay.querySelector("[data-cancel-comment]").addEventListener("click", () => finish(null));
+  });
 }
 
 function renderNewInbox() {
@@ -721,9 +755,6 @@ async function loadOwnerLetters() {
     const result = await api(`/api/owner/inboxes/${encodeURIComponent(state.owner.handle)}/letters`, {
       ownerKey: state.owner.key
     });
-    const sent = await api(`/api/owner/inboxes/${encodeURIComponent(state.owner.handle)}/sent`, {
-      ownerKey: state.owner.key
-    });
     mount.innerHTML = `
       <div class="owner-profile card">
         <button class="avatar-button" type="button" data-avatar-pick aria-label="设置头像">
@@ -743,7 +774,7 @@ async function loadOwnerLetters() {
       ${result.letters.length ? result.letters.map(ownerLetterCard).join("") : `<p class="empty">还没有来信。</p>`}
       <section class="panel sent-panel">
         <h2>已寄出的邮件</h2>
-        ${sent.letters.length ? sent.letters.map(sentLetterCard).join("") : `<p class="empty">登录状态下给别人写信后，会显示在这里。</p>`}
+        ${result.sent?.length ? result.sent.map(sentLetterCard).join("") : `<p class="empty">登录状态下给别人写信后，会显示在这里。</p>`}
       </section>
     `;
     bindNav(mount);
