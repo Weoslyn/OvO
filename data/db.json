@@ -124,11 +124,11 @@
       "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
       "senderInboxId": "",
       "body": "神了",
-      "status": "new",
+      "status": "archived",
       "reply": "",
       "createdAt": "2026-07-16T15:45:17.468Z",
       "repliedAt": null,
-      "archivedAt": null
+      "archivedAt": "2026-07-16T17:22:57.219Z"
     },
     {
       "id": "662916f6-ccdb-42b1-a51b-9e5c58094155",
