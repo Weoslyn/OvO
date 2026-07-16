@@ -140,6 +140,17 @@
       "createdAt": "2026-07-16T16:12:29.736Z",
       "repliedAt": null,
       "archivedAt": null
+    },
+    {
+      "id": "4c94b8b2-6c4e-47c3-bdc6-a80377809734",
+      "inboxId": "6e54e510-7765-4378-ad84-9dea4dfdff32",
+      "senderInboxId": "",
+      "body": "嘿嘿 路过夸夸宝宝",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-16T16:27:43.872Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
