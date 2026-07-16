@@ -212,8 +212,8 @@ function renderNewInbox() {
         <label>展示名
           <input name="penName" placeholder="例如 OvO" maxlength="40" required />
         </label>
-        <label>绑定邮箱
-          <input name="ownerEmail" type="email" placeholder="用于长期绑定和找回管理入口" maxlength="120" required />
+        <label>绑定邮箱（可选）
+          <input name="ownerEmail" type="email" placeholder="不填也可以创建，填写后可用于邮箱找回" maxlength="120" />
         </label>
         <label>简介
           <textarea name="bio" maxlength="120" placeholder="一句话告诉别人可以写什么给你"></textarea>
@@ -248,6 +248,9 @@ function renderNewInbox() {
       state.owner.key = result.ownerKey;
       const displayPath = `/u/${encodeURIComponent(result.inbox.handle)}`;
       const managePath = result.manageUrl;
+      const recoveryNote = result.inbox.emailBound
+        ? "已绑定邮箱，可用邮箱或管理密钥找回。"
+        : "未绑定邮箱，请保存接收链接和管理密钥，之后只能靠它们找回。";
       message.className = "success";
       message.innerHTML = `
         <span class="created-title">创建成功</span>
@@ -263,7 +266,7 @@ function renderNewInbox() {
             <small>这个链接是你自己的收信页面，请妥善保存</small>
           </button>
         </span>
-        <span class="subtle">管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code></span>
+        <span class="subtle">管理密钥：<code class="key-code">${escapeHtml(result.ownerKey)}</code><br />${escapeHtml(recoveryNote)}</span>
       `;
       bindNav(message);
     } catch (err) {
@@ -286,7 +289,7 @@ function recoverSectionHtml(mode = "") {
   return `
     <section class="panel recover-panel">
       <h1 class="${mode === "compact" ? "" : "page-title"}">${title}</h1>
-      <p class="subtle">可以用创建时绑定的邮箱找回，也可以直接用管理密钥找回。密钥请只给信箱主人保存。</p>
+      <p class="subtle">如果创建时绑定了邮箱，可以用邮箱找回；没有绑定邮箱也可以用管理密钥找回。密钥请只给信箱主人保存。</p>
       <form class="form" id="recover-form">
         <label>链接名
           <input name="handle" placeholder="例如 ovo" minlength="3" maxlength="24" required />
