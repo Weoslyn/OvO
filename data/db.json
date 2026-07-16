@@ -85,6 +85,17 @@
       "createdAt": "2026-07-16T10:00:12.897Z",
       "repliedAt": "2026-07-16T10:37:56.938Z",
       "archivedAt": null
+    },
+    {
+      "id": "85af59eb-57d3-4ba7-bbd7-6a34485fb461",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "点进来一个大大的ovo好萌呀！",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-16T12:17:41.385Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
