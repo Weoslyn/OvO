@@ -192,6 +192,17 @@
       "createdAt": "2026-07-16T23:16:20.777Z",
       "repliedAt": null,
       "archivedAt": null
+    },
+    {
+      "id": "a4116aba-0e0d-47c3-9e8d-c56a8b3d324b",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "有个人已经秽土转生了",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-17T13:50:17.132Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
