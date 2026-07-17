@@ -198,10 +198,10 @@
       "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
       "senderInboxId": "",
       "body": "有个人已经秽土转生了",
-      "status": "new",
-      "reply": "",
+      "status": "replied",
+      "reply": "已经看到了！",
       "createdAt": "2026-07-17T13:50:17.132Z",
-      "repliedAt": null,
+      "repliedAt": "2026-07-17T15:23:16.482Z",
       "archivedAt": null
     }
   ],
