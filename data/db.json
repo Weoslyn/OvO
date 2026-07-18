@@ -225,6 +225,17 @@
       "createdAt": "2026-07-18T10:13:37.279Z",
       "repliedAt": null,
       "archivedAt": null
+    },
+    {
+      "id": "d5747fb2-76e6-4129-90c4-4d716a4ce69b",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "看看腿",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-07-18T12:16:30.043Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
