@@ -258,6 +258,17 @@
       "createdAt": "2026-07-30T17:01:41.313Z",
       "repliedAt": null,
       "archivedAt": null
+    },
+    {
+      "id": "d0ad5d97-d27a-4ee6-b4d2-5854cfed545c",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "好想玩原神",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-08-02T19:07:20.437Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
