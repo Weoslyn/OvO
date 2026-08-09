@@ -269,6 +269,17 @@
       "createdAt": "2026-08-02T19:07:20.437Z",
       "repliedAt": "2026-08-03T12:33:30.990Z",
       "archivedAt": null
+    },
+    {
+      "id": "e5315aa9-cfcd-4d79-9577-b7c5553e315b",
+      "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
+      "senderInboxId": "",
+      "body": "老师我喜欢你",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-08-09T04:42:58.244Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
