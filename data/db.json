@@ -164,10 +164,10 @@
       "inboxId": "77e18f6e-8ca7-40a5-9708-2a045d3e18e5",
       "senderInboxId": "",
       "body": "神了",
-      "status": "archived",
-      "reply": "",
+      "status": "replied",
+      "reply": "。。",
       "createdAt": "2026-07-16T15:45:17.468Z",
-      "repliedAt": null,
+      "repliedAt": "2026-08-12T17:26:59.364Z",
       "archivedAt": "2026-07-16T17:22:57.219Z"
     },
     {
