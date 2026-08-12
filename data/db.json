@@ -333,6 +333,17 @@
       "createdAt": "2026-08-12T14:55:06.409Z",
       "repliedAt": "2026-08-12T16:33:40.770Z",
       "archivedAt": null
+    },
+    {
+      "id": "24b60c4c-d15a-4c34-a522-6a554366ab1a",
+      "inboxId": "fbda1866-9dbe-4980-9f2c-23f8f684f94e",
+      "senderInboxId": "fbda1866-9dbe-4980-9f2c-23f8f684f94e",
+      "body": "123456",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-08-12T19:47:54.447Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
