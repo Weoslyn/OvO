@@ -339,11 +339,11 @@
       "inboxId": "fbda1866-9dbe-4980-9f2c-23f8f684f94e",
       "senderInboxId": "fbda1866-9dbe-4980-9f2c-23f8f684f94e",
       "body": "123456",
-      "status": "new",
+      "status": "archived",
       "reply": "",
       "createdAt": "2026-08-12T19:47:54.447Z",
       "repliedAt": null,
-      "archivedAt": null
+      "archivedAt": "2026-08-12T19:48:23.838Z"
     }
   ],
   "squarePosts": [
