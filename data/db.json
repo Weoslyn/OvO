@@ -407,6 +407,17 @@
       "createdAt": "2026-08-13T06:03:17.612Z",
       "repliedAt": "2026-08-13T16:22:04.767Z",
       "archivedAt": null
+    },
+    {
+      "id": "d651d239-0c72-4254-aac6-891ce4e47a30",
+      "inboxId": "6e54e510-7765-4378-ad84-9dea4dfdff32",
+      "senderInboxId": "",
+      "body": "你好 到此一遊～～\n\n這個匿名信箱網站第一次看到 好特別",
+      "status": "new",
+      "reply": "",
+      "createdAt": "2026-08-14T11:00:12.157Z",
+      "repliedAt": null,
+      "archivedAt": null
     }
   ],
   "squarePosts": [
