@@ -413,10 +413,10 @@
       "inboxId": "6e54e510-7765-4378-ad84-9dea4dfdff32",
       "senderInboxId": "",
       "body": "你好 到此一遊～～\n\n這個匿名信箱網站第一次看到 好特別",
-      "status": "new",
-      "reply": "",
+      "status": "replied",
+      "reply": "欢迎你～～ 这是一个朋友老师做的 超级厉害！",
       "createdAt": "2026-08-14T11:00:12.157Z",
-      "repliedAt": null,
+      "repliedAt": "2026-08-15T00:08:13.925Z",
       "archivedAt": null
     }
   ],
